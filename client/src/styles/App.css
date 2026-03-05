@@ -1,0 +1,43 @@
+/* App specific styles */
+.ant-menu-dark {
+  background-color: #001529;
+}
+
+.ant-layout-header {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ant-layout-header h1 {
+  margin: 0 0 0 16px;
+  font-size: 24px;
+  color: #000;
+}
+
+.ant-card {
+  margin-bottom: 16px;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+}
+
+.ant-table {
+  font-size: 13px;
+}
+
+.ant-table-column-sorter {
+  margin-left: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ant-layout-header h1 {
+    font-size: 18px;
+  }
+
+  .ant-table {
+    font-size: 12px;
+  }
+}
