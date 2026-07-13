@@ -1,0 +1,39 @@
+.advanced-search-filter {
+  .filter-card {
+    padding: 16px 20px;
+    background-color: #fafafa;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    margin-bottom: 24px;
+  }
+
+  .filter-item {
+    display: flex;
+    align-items: center;
+
+    .filter-label {
+      flex-shrink: 0;
+      margin-right: 8px;
+      color: rgba(0, 0, 0, 0.85);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    // 让输入控件占满剩余空间
+    .ant-input,
+    .ant-select,
+    .ant-picker {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .filter-actions {
+    float: right;
+
+    .ant-btn {
+      height: 32px;
+      width: 80px;
+    }
+  }
+}

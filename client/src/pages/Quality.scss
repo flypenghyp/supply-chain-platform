@@ -1,0 +1,87 @@
+.quality-page {
+  padding: 24px;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 64px);
+
+  .quality-stats {
+    margin-bottom: 24px;
+  }
+
+  .quality-notice-no {
+    font-weight: bold;
+    color: #1890ff;
+  }
+
+  .quality-sub-text {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .quality-primary-text {
+    color: #1890ff;
+  }
+
+  .quality-danger-text {
+    color: #f5222d;
+  }
+
+  .quality-success-text {
+    color: #52c41a;
+  }
+
+  .quality-warning-text {
+    color: #faad14;
+  }
+
+  .quality-warning-block {
+    margin-top: 8px;
+    background-color: #fffbe6;
+    padding: 12px;
+    border-radius: 4px;
+  }
+
+  .quality-desc-block {
+    margin-top: 12px;
+  }
+
+  .quality-divider {
+    margin: 12px 0;
+  }
+
+  .quality-barcode {
+    font-size: 12px;
+  }
+
+  .quality-mini-table {
+    margin-top: 8px;
+  }
+
+  .quality-info-card,
+  .quality-breach-card,
+  .quality-retailer-card,
+  .quality-feedback-card,
+  .quality-deduction-card,
+  .quality-detail-card,
+  .quality-detail-violation {
+    margin-bottom: 16px;
+  }
+
+  .quality-detail-violation {
+    border: 2px solid #f5222d;
+  }
+
+  .quality-retailer-card {
+    border: 1px solid #52c41a;
+  }
+
+  .quality-sign-action {
+    text-align: center;
+    padding-top: 16px;
+  }
+
+  .quality-modal-action {
+    text-align: center;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+  }
+}

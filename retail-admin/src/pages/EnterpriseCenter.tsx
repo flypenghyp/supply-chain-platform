@@ -31,7 +31,11 @@ import {
   SafetyOutlined,
   MailOutlined,
   PhoneOutlined,
+  SearchOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
+import PhoneDisplay from '../components/PhoneDisplay'
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
 
 const { Title, Text } = Typography
 
@@ -72,6 +76,11 @@ const EnterpriseCenter = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [addEmployeeModalVisible, setAddEmployeeModalVisible] = useState(false)
   const [form] = Form.useForm()
+  const [filters, setFilters] = useState({
+    name: undefined,
+    department: undefined,
+    status: undefined,
+  })
 
   // Mock data
   const companyInfo: CompanyInfo = {
@@ -169,6 +178,23 @@ const EnterpriseCenter = () => {
     })
   }
 
+  const handleFilterChange = (newFilters: typeof filters) => {
+    setFilters(newFilters)
+  }
+
+  const handleSearch = () => {
+    message.success('查询成功')
+  }
+
+  const handleReset = () => {
+    setFilters({
+      name: undefined,
+      department: undefined,
+      status: undefined,
+    })
+    message.success('已重置筛选条件')
+  }
+
   const employeeColumns = [
     {
       title: '姓名',
@@ -183,7 +209,7 @@ const EnterpriseCenter = () => {
     { title: '部门', dataIndex: 'department', render: (text: string) => <Tag color="blue">{text}</Tag> },
     { title: '职位', dataIndex: 'position' },
     { title: '邮箱', dataIndex: 'email' },
-    { title: '电话', dataIndex: 'phone' },
+    { title: '电话', dataIndex: 'phone', width: 150, render: (phone: string) => <PhoneDisplay phone={phone} /> },
     {
       title: '状态',
       dataIndex: 'status',
@@ -199,8 +225,21 @@ const EnterpriseCenter = () => {
       width: 150,
       render: (_: unknown, record: Employee) => (
         <Space>
-          <Button type="link" size="small" onClick={() => handleViewEmployee(record)}>查看</Button>
-          <Button type="link" size="small">编辑</Button>
+          <Button
+            type="link"
+            size="small"
+            style={{ color: '#1890ff', paddingLeft: 0, paddingRight: 0 }}
+            onClick={() => handleViewEmployee(record)}
+          >
+            查看
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            style={{ color: '#1890ff', paddingLeft: 0, paddingRight: 0 }}
+          >
+            编辑
+          </Button>
         </Space>
       ),
     },
@@ -272,16 +311,30 @@ const EnterpriseCenter = () => {
             icon: <UserOutlined />,
             children: (
               <>
-                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-                  <Space>
-                    <Input.Search placeholder="搜索员工姓名" style={{ width: 200 }} />
-                    <Select style={{ width: 150 }} placeholder="选择部门" allowClear />
-                    <Select style={{ width: 120 }} placeholder="状态" allowClear>
-                      <Select.Option value="active">在职</Select.Option>
-                      <Select.Option value="inactive">离职</Select.Option>
-                    </Select>
-                  </Space>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAddEmployee}>添加员工</Button>
+                <AdvancedSearchFilter
+                  fields={[
+                    { key: 'name', label: '姓名', type: 'input', placeholder: '请输入员工姓名' },
+                    { key: 'department', label: '部门', type: 'select', placeholder: '请选择部门',
+                      options: departments.map(d => ({ label: d.name, value: d.name }))
+                    },
+                    { key: 'status', label: '状态', type: 'select', placeholder: '请选择状态',
+                      options: [
+                        { label: '在职', value: 'active' },
+                        { label: '离职', value: 'inactive' }
+                      ]
+                    }
+                  ]}
+                  values={filters}
+                  onChange={handleFilterChange}
+                  onSearch={handleSearch}
+                  onReset={handleReset}
+                  extraActions={<Button type="primary" icon={<PlusOutlined />} onClick={handleAddEmployee} style={{ height: 32 }}>新增员工</Button>}
+                />
+                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Space />
+                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAddEmployee} style={{ height: 32 }}>
+                    添加员工
+                  </Button>
                 </div>
                 <Table
                   rowKey="id"
@@ -403,7 +456,7 @@ const EnterpriseCenter = () => {
               </Descriptions.Item>
               <Descriptions.Item label="职位">{selectedEmployee.position}</Descriptions.Item>
               <Descriptions.Item label={<><MailOutlined /> 邮箱</>}>{selectedEmployee.email}</Descriptions.Item>
-              <Descriptions.Item label={<><PhoneOutlined /> 电话</>}>{selectedEmployee.phone}</Descriptions.Item>
+              <Descriptions.Item label={<><PhoneOutlined /> 电话</>}><PhoneDisplay phone={selectedEmployee.phone} /></Descriptions.Item>
               <Descriptions.Item label="状态">
                 <Tag color={selectedEmployee.status === 'active' ? 'green' : 'default'}>
                   {selectedEmployee.status === 'active' ? '在职' : '离职'}

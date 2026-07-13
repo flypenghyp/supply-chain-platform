@@ -28,10 +28,13 @@ import {
   ShopOutlined,
   CalendarOutlined,
   DollarOutlined,
+  SearchOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { usePermission } from '@/contexts/PermissionContext'
 import type { Order, OrderItem } from '@/types'
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
 
 const { RangePicker } = DatePicker
 const { Title, Text } = Typography
@@ -44,6 +47,12 @@ const OrderManagement = () => {
   const [hideDrawerVisible, setHideDrawerVisible] = useState(false)
   const [hideReason, setHideReason] = useState('')
   const [currentHideOrder, setCurrentHideOrder] = useState<Order | null>(null)
+  const [filters, setFilters] = useState({
+    orderNo: '',
+    supplierId: '',
+    categoryId: '',
+    dateRange: null as any
+  })
 
   const { canApprove, canHide, getManagedCategories } = usePermission()
   const categories = getManagedCategories()
@@ -54,7 +63,6 @@ const OrderManagement = () => {
 
   const fetchOrders = async () => {
     setLoading(true)
-    // 模拟数据（包含订单明细）
     const mockOrders: Order[] = [
       {
         id: '1',
@@ -119,6 +127,20 @@ const OrderManagement = () => {
     ]
     setOrders(mockOrders)
     setLoading(false)
+  }
+
+  const handleSearch = () => {
+    message.success('查询成功')
+  }
+
+  const handleReset = () => {
+    setFilters({
+      orderNo: '',
+      supplierId: '',
+      categoryId: '',
+      dateRange: null
+    })
+    message.success('已重置查询条件')
   }
 
   const handleViewDetail = (record: Order) => {
@@ -253,14 +275,28 @@ const OrderManagement = () => {
 
   return (
     <Card>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <Space>
-          <Input placeholder="订单编号" style={{ width: 200 }} />
-          <Select placeholder="选择品类" style={{ width: 150 }} options={categories.map(c => ({ label: c.categoryName, value: c.categoryId }))} />
-          <RangePicker />
-          <Button type="primary">查询</Button>
-        </Space>
-        <Button icon={<DownloadOutlined />}>导出</Button>
+      <AdvancedSearchFilter
+        fields={[
+          { key: 'orderNo', label: '订单编号', type: 'input', placeholder: '请输入订单编号' },
+          { key: 'supplierId', label: '供应商', type: 'select', placeholder: '请选择供应商',
+            options: [
+              { label: '统一企业食品有限公司', value: 'SUP001' },
+              { label: '好利来食品有限公司', value: 'SUP002' },
+              { label: '伊利乳业股份有限公司', value: 'SUP003' }
+            ]
+          },
+          { key: 'categoryId', label: '品类', type: 'select', placeholder: '请选择品类' },
+          { key: 'dateRange', label: '订单日期', type: 'rangePicker' }
+        ]}
+        values={filters}
+        onChange={(k, v) => setFilters({ ...filters, [k]: v })}
+        onSearch={() => handleSearch()}
+        onReset={() => handleReset()}
+        extraActions={<Button style={{ height: 32 }}>导出</Button>}
+      />
+
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+        <Button style={{ height: 32 }}>导出</Button>
       </div>
 
       <Table

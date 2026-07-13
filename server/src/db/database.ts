@@ -12,7 +12,7 @@ class Database {
 
   async initialize(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(DB_PATH, (err) => {
+      this.db = new sqlite3.Database(DB_PATH, (err: Error | null) => {
         if (err) {
           reject(err);
         } else {
@@ -25,7 +25,7 @@ class Database {
   private async createTables(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const run = promisify(this.db.run.bind(this.db));
+    const run = promisify(this.db!.run.bind(this.db));
 
     // Suppliers table
     await run(`
@@ -39,6 +39,10 @@ class Database {
         country TEXT NOT NULL,
         status TEXT DEFAULT 'active',
         rating REAL DEFAULT 0,
+        is_super_admin INTEGER DEFAULT 0,
+        business_license TEXT,
+        super_admin_phone TEXT,
+        super_admin_role TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -103,6 +107,106 @@ class Database {
       )
     `);
 
+    // Supplier users table
+    await run(`
+      CREATE TABLE IF NOT EXISTS supplier_users (
+        id TEXT PRIMARY KEY,
+        supplier_code TEXT NOT NULL,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL UNIQUE,
+        email TEXT,
+        role TEXT NOT NULL,
+        role_name TEXT NOT NULL,
+        role_type TEXT DEFAULT 'custom',
+        status TEXT DEFAULT 'active',
+        permissions TEXT,
+        data_scope TEXT,
+        created_by TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_login_time DATETIME
+      )
+    `);
+
+    // Super admin change logs table
+    await run(`
+      CREATE TABLE IF NOT EXISTS super_admin_change_logs (
+        id TEXT PRIMARY KEY,
+        supplier_code TEXT NOT NULL,
+        old_admin_id TEXT,
+        old_admin_name TEXT,
+        old_admin_phone TEXT,
+        new_admin_id TEXT,
+        new_admin_name TEXT,
+        new_admin_phone TEXT,
+        operator_id TEXT,
+        operator_name TEXT,
+        operation_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+        operation_ip TEXT,
+        operation_device TEXT,
+        reason TEXT,
+        verify_method TEXT DEFAULT 'sms_code',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Verify codes table
+    await run(`
+      CREATE TABLE IF NOT EXISTS verify_codes (
+        id TEXT PRIMARY KEY,
+        phone TEXT NOT NULL,
+        code TEXT NOT NULL,
+        type TEXT NOT NULL,
+        supplier_code TEXT,
+        expire_time DATETIME NOT NULL,
+        used INTEGER DEFAULT 0,
+        used_time DATETIME,
+        fail_count INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Supplier esign info table
+    await run(`
+      CREATE TABLE IF NOT EXISTS supplier_esign_info (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL UNIQUE,
+        supplier_code TEXT NOT NULL,
+        real_name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        id_card TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        verified INTEGER DEFAULT 0,
+        verified_at DATETIME,
+        verified_by TEXT,
+        enabled INTEGER DEFAULT 0,
+        granted_at DATETIME,
+        granted_by TEXT,
+        reject_reason TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Supplier esign logs table
+    await run(`
+      CREATE TABLE IF NOT EXISTS supplier_esign_logs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        supplier_code TEXT NOT NULL,
+        action TEXT NOT NULL,
+        action_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+        action_ip TEXT,
+        action_device TEXT,
+        result TEXT,
+        reason TEXT,
+        real_name TEXT,
+        phone TEXT,
+        id_card TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     console.log('Database tables created successfully');
   }
 
@@ -110,7 +214,7 @@ class Database {
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
-      this.db!.run(sql, params, function(err) {
+      this.db!.run(sql, params, function(this: any, err: Error | null) {
         if (err) reject(err);
         else resolve({ id: this.lastID, changes: this.changes });
       });
@@ -121,7 +225,7 @@ class Database {
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
-      this.db!.get(sql, params, (err, row) => {
+      this.db!.get(sql, params, (err: Error | null, row: any) => {
         if (err) reject(err);
         else resolve(row);
       });
@@ -132,7 +236,7 @@ class Database {
     if (!this.db) throw new Error('Database not initialized');
     
     return new Promise((resolve, reject) => {
-      this.db!.all(sql, params, (err, rows) => {
+      this.db!.all(sql, params, (err: Error | null, rows: any[]) => {
         if (err) reject(err);
         else resolve(rows || []);
       });
@@ -142,8 +246,8 @@ class Database {
   async close(): Promise<void> {
     if (!this.db) return;
     
-    return new Promise((resolve, reject) => {
-      this.db!.close((err) => {
+    return new Promise<void>((resolve, reject) => {
+      this.db!.close((err: Error | null) => {
         if (err) reject(err);
         else resolve();
       });

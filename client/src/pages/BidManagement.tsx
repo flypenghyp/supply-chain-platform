@@ -10,6 +10,7 @@ import {
   RobotOutlined, CalculatorOutlined, RiseOutlined, FallOutlined, UserOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter';
 
 const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
@@ -406,38 +407,17 @@ const BidManagement: React.FC = () => {
             key="bids"
           >
             {/* 报价筛选条件 */}
-            <Row gutter={16} style={{ marginBottom: '16px' }}>
-              <Col xs={24} sm={8} lg={4}>
-                <Select
-                  placeholder="报价状态"
-                  style={{ width: '100%' }}
-                  allowClear
-                  value={filters.status}
-                  onChange={(value) => handleFilterChange({ ...filters, status: value })}
-                >
-                  <Select.Option value="pending">待确认</Select.Option>
-                  <Select.Option value="accepted">已接受</Select.Option>
-                  <Select.Option value="rejected">已拒绝</Select.Option>
-                  <Select.Option value="expired">已过期</Select.Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={8} lg={4}>
-                <Input
-                  placeholder="搜索商品"
-                  value={filters.product}
-                  onChange={(e) => handleFilterChange({ ...filters, product: e.target.value })}
-                  prefix={<FileTextOutlined />}
-                />
-              </Col>
-              <Col xs={24} sm={8} lg={4}>
-                <Space>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleSubmitBid}>
-                    提交新报价
-                  </Button>
-                  <Button icon={<FileTextOutlined />}>导出报表</Button>
-                </Space>
-              </Col>
-            </Row>
+            <AdvancedSearchFilter
+              fields={[
+                { key: 'status', label: '状态', type: 'select', placeholder: '请选择状态',
+                  options: [{ label: '开放', value: 'open' }, { label: '已关闭', value: 'closed' }] },
+                { key: 'product', label: '商品', type: 'input', placeholder: '请输入商品名称' }
+              ]}
+              values={filters}
+              onChange={(k, v) => handleFilterChange({ ...filters, [k]: v })}
+              onSearch={() => console.log('search')}
+              onReset={() => setFilters({ status: undefined, product: '' })}
+            />
 
             {/* 报价统计概览 */}
             <Row gutter={16} style={{ marginBottom: '24px' }}>
@@ -507,28 +487,38 @@ const BidManagement: React.FC = () => {
             key="requests"
           >
             {/* 需求筛选条件 */}
-            <Row gutter={16} style={{ marginBottom: '16px' }}>
-              <Col xs={24} sm={8} lg={4}>
-                <Select
-                  placeholder="需求状态"
-                  style={{ width: '100%' }}
-                  allowClear
-                  value={filters.status}
-                  onChange={(value) => handleFilterChange({ ...filters, status: value })}
-                >
-                  <Select.Option value="open">开放中</Select.Option>
-                  <Select.Option value="expired">已过期</Select.Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={8} lg={4}>
-                <Input
-                  placeholder="搜索商品"
-                  value={filters.product}
-                  onChange={(e) => handleFilterChange({ ...filters, product: e.target.value })}
-                  prefix={<FileTextOutlined />}
-                />
-              </Col>
-            </Row>
+            <div
+              style={{
+                marginBottom: '24px',
+                padding: '20px',
+                backgroundColor: '#fafafa',
+                borderRadius: '4px',
+                border: '1px solid #e8e8e8'
+              }}
+            >
+              <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <Select
+                    placeholder="需求状态"
+                    style={{ width: '100%' }}
+                    allowClear
+                    value={filters.status}
+                    onChange={(value) => handleFilterChange({ ...filters, status: value })}
+                  >
+                    <Select.Option value="open">开放中</Select.Option>
+                    <Select.Option value="expired">已过期</Select.Option>
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <Input
+                    placeholder="搜索商品"
+                    value={filters.product}
+                    onChange={(e) => handleFilterChange({ ...filters, product: e.target.value })}
+                    prefix={<FileTextOutlined />}
+                  />
+                </Col>
+              </Row>
+            </div>
 
             {/* 需求统计概览 */}
             <Row gutter={16} style={{ marginBottom: '24px' }}>

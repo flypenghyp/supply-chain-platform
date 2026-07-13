@@ -1,23 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Table, Button, Space, Drawer, Form, Input, Select, message, Card, Row, Col,
-  Tag, Badge, Divider, List, Avatar, Descriptions, DatePicker, Upload,
+  Table, Button, Space, Drawer, Form, Input, InputNumber, Select, message, Card, Row, Col,
+  Tag, Badge, Divider, Descriptions, DatePicker, Upload,
   Steps, Progress, Alert, Typography, Tooltip, Tabs, Statistic
 } from 'antd';
 import {
   TruckOutlined, EyeOutlined, UploadOutlined, CheckCircleOutlined,
-  ClockCircleOutlined, EnvironmentOutlined, PhoneOutlined,
-  FileTextOutlined, CameraOutlined, CarOutlined, UserOutlined
+  ClockCircleOutlined, EnvironmentOutlined,
+  FileTextOutlined, CameraOutlined, CloseOutlined, PlusOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter';
 
 const { Title, Text, Paragraph } = Typography;
 const { Step } = Steps;
-const { TabPane } = Tabs;
 
 const Shipments: React.FC = () => {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('pending');
   const [shipments, setShipments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,6 +23,15 @@ const Shipments: React.FC = () => {
   const [trackModalVisible, setTrackModalVisible] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [form] = Form.useForm();
+  const [filters, setFilters] = useState<{ product: string; warehouse: string; status?: string }>({
+    product: '',
+    warehouse: '',
+    status: undefined
+  });
+
+  const handleFilterChange = (values: typeof filters) => {
+    setFilters(values);
+  };
 
   // 模拟数据
   useEffect(() => {
@@ -403,82 +410,164 @@ const Shipments: React.FC = () => {
     }
   ];
 
+  const tabItems = [
+    {
+      key: 'pending',
+      label: (
+        <span>
+          <ClockCircleOutlined />
+          待发货订单
+          {activeTab === 'pending' && shipments.length > 0 && (
+            <Badge count={shipments.length} style={{ marginLeft: '8px' }} />
+          )}
+        </span>
+      ),
+      children: (
+        <>
+          <AdvancedSearchFilter
+            fields={[
+              { key: 'product', label: '商品名称', type: 'input', placeholder: '请输入商品名称' },
+              { key: 'warehouse', label: '仓库', type: 'input', placeholder: '请输入仓库' },
+              { key: 'status', label: '发货状态', type: 'select', placeholder: '请选择状态',
+                options: [{ label: '待发货', value: 'pending' }, { label: '在途', value: 'in_transit' }, { label: '已完成', value: 'completed' }]
+              }
+            ]}
+            values={filters}
+            onChange={(k, v) => handleFilterChange({ ...filters, [k]: v })}
+            onSearch={() => console.log('search')}
+            onReset={() => setFilters({ product: '', warehouse: '', status: undefined })}
+          />
+          <Table
+            columns={renderPendingColumns()}
+            dataSource={shipments}
+            loading={loading}
+            rowKey="id"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
+            }}
+            scroll={{ x: 1000 }}
+          />
+        </>
+      )
+    },
+    {
+      key: 'in_transit',
+      label: (
+        <span>
+          <TruckOutlined />
+          在途订单
+        </span>
+      ),
+      children: (
+        <>
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '20px',
+              backgroundColor: '#fafafa',
+              borderRadius: '4px',
+              border: '1px solid #e8e8e8'
+            }}
+          >
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Input placeholder="搜索订单号/物流单号" prefix={<FileTextOutlined />} />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select placeholder="物流状态" style={{ width: '100%' }} allowClear>
+                  <Select.Option value="picked">已揽件</Select.Option>
+                  <Select.Option value="in_transit">运输中</Select.Option>
+                  <Select.Option value="delivering">派送中</Select.Option>
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <DatePicker placeholder="发货日期" style={{ width: '100%' }} />
+              </Col>
+              <Col xs={24} sm={24} md={24} lg={24}>
+                <Space style={{ float: 'right' }}>
+                  <Button type="primary" style={{ height: 32, width: 80 }}>查询</Button>
+                  <Button style={{ height: 32, width: 80 }}>重置</Button>
+                </Space>
+              </Col>
+            </Row>
+          </div>
+          <Table
+            columns={renderTransitColumns()}
+            dataSource={shipments}
+            loading={loading}
+            rowKey="id"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
+            }}
+            scroll={{ x: 1200 }}
+          />
+        </>
+      )
+    },
+    {
+      key: 'completed',
+      label: (
+        <span>
+          <CheckCircleOutlined />
+          已完成订单
+        </span>
+      ),
+      children: (
+        <>
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '20px',
+              backgroundColor: '#fafafa',
+              borderRadius: '4px',
+              border: '1px solid #e8e8e8'
+            }}
+          >
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Input placeholder="搜索订单号/供应商" prefix={<FileTextOutlined />} />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <DatePicker.RangePicker placeholder="完成日期" style={{ width: '100%' }} />
+              </Col>
+              <Col xs={24} sm={24} md={24} lg={24}>
+                <Space style={{ float: 'right' }}>
+                  <Button type="primary" style={{ height: 32, width: 80 }}>查询</Button>
+                  <Button style={{ height: 32, width: 80 }}>重置</Button>
+                </Space>
+              </Col>
+            </Row>
+          </div>
+          <Table
+            columns={renderCompletedColumns()}
+            dataSource={shipments}
+            loading={loading}
+            rowKey="id"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
+            }}
+            scroll={{ x: 1200 }}
+          />
+        </>
+      )
+    }
+  ];
+
+  const drawerStyles = {
+    body: { padding: '24px' },
+    mask: { backgroundColor: 'rgba(0, 0, 0, 0.45)' }
+  };
+
   return (
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: 'calc(100vh - 64px)' }}>
       <Card>
-        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-          <TabPane
-            tab={
-              <span>
-                <ClockCircleOutlined />
-                待发货订单
-                {activeTab === 'pending' && shipments.length > 0 && (
-                  <Badge count={shipments.length} style={{ marginLeft: '8px' }} />
-                )}
-              </span>
-            }
-            key="pending"
-          >
-            <Table
-              columns={renderPendingColumns()}
-              dataSource={shipments}
-              loading={loading}
-              rowKey="id"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-              }}
-              scroll={{ x: 1000 }}
-            />
-          </TabPane>
-
-          <TabPane
-            tab={
-              <span>
-                <TruckOutlined />
-                在途订单
-              </span>
-            }
-            key="in_transit"
-          >
-            <Table
-              columns={renderTransitColumns()}
-              dataSource={shipments}
-              loading={loading}
-              rowKey="id"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-              }}
-              scroll={{ x: 1200 }}
-            />
-          </TabPane>
-
-          <TabPane
-            tab={
-              <span>
-                <CheckCircleOutlined />
-                已完成订单
-              </span>
-            }
-            key="completed"
-          >
-            <Table
-              columns={renderCompletedColumns()}
-              dataSource={shipments}
-              loading={loading}
-              rowKey="id"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-              }}
-              scroll={{ x: 1200 }}
-            />
-          </TabPane>
-        </Tabs>
+        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={tabItems} />
       </Card>
 
       {/* 发货侧边栏 */}
@@ -489,8 +578,7 @@ const Shipments: React.FC = () => {
         open={shipModalVisible}
         width={720}
         style={{ maxWidth: '100vw' }}
-        bodyStyle={{ padding: '24px' }}
-        maskStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.45)' }}
+        styles={drawerStyles}
       >
         <Form onFinish={handleShipSubmit} layout="vertical">
           {selectedShipment && (
@@ -793,8 +881,7 @@ const Shipments: React.FC = () => {
         open={trackModalVisible}
         width={720}
         style={{ maxWidth: '100vw' }}
-        bodyStyle={{ padding: '24px' }}
-        maskStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.45)' }}
+        styles={drawerStyles}
       >
         {selectedShipment && (
           <div>

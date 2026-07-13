@@ -9,12 +9,21 @@
     "retail-admin"
   ],
   "scripts": {
-    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
-    "build": "npm --prefix server build && npm --prefix client build",
+    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\" \"npm --prefix retail-admin run dev\"",
+    "build": "npm --prefix server build && npm --prefix client build && npm --prefix retail-admin build",
+    "build:standalone": "npm --prefix client run build:standalone && npm --prefix retail-admin run build:standalone && node scripts/fix-standalone-html.cjs",
+    "build:client-static": "npm --prefix client run build:static && node scripts/fix-standalone-html.cjs",
+    "build:doc": "npm --prefix client run build:doc && npm --prefix retail-admin run build:doc && node scripts/fix-standalone-html.cjs",
     "start": "npm --prefix server start",
-    "install-all": "npm install && npm --prefix client install && npm --prefix server install"
+    "install-all": "npm install && npm --prefix client install && npm --prefix server install && npm --prefix retail-admin install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "@ant-design/icons-svg": "^4.4.2",
+    "date-fns": "^4.1.0",
+    "docx": "^9.7.1"
   }
 }

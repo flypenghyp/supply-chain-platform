@@ -1,0 +1,13 @@
+.change-super-admin-modal {
+  &__admin-info-card {
+    margin-bottom: 16px;
+
+    .ant-descriptions-item-label {
+      color: #666;
+    }
+  }
+
+  &__warning-alert {
+    margin-bottom: 16px;
+  }
+}

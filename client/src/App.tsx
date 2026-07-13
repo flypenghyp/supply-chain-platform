@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Layout, Menu, Breadcrumb, Affix, Button, Avatar, Dropdown, Input, Typography } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Layout, Menu, Breadcrumb, Affix, Button, Avatar, Dropdown, Input, Typography, Modal, Radio, Space, message } from 'antd';
 
 const { Title } = Typography;
 import {
@@ -21,10 +21,17 @@ import {
   BellOutlined,
   MessageOutlined,
   DollarOutlined,
-  CloseOutlined
+  CloseOutlined,
+  SwapOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+
+const isFileProtocol = typeof window !== 'undefined' && window.location?.protocol === 'file:';
+// file:// 用 MemoryRouter 避免 HashRouter 在静态文件下的报错
+const Router = isFileProtocol ? MemoryRouter : HashRouter;
 import Dashboard from './pages/Dashboard';
+import Login from './pages/Login/index';
 import Suppliers from './pages/Suppliers';
 import Products from './pages/Products';
 import Orders from './pages/Orders';
@@ -43,12 +50,15 @@ import Account from './pages/Account';
 import Service from './pages/Service';
 import ProductManagement from './pages/ProductManagement';
 import Contracts from './pages/Contracts';
+import Announcements from './pages/Announcements';
+import SettlementApplication from './pages/SettlementApplication';
+import ApiResult from './pages/ApiResult';
 import './styles/App.css';
 
 const { Header, Sider, Content, Footer } = Layout;
 
 const App: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('supplier_token'));
   const [aiAssistantVisible, setAiAssistantVisible] = useState(false);
   const [currentSupplier, setCurrentSupplier] = useState({
     code: 'NFS001',
@@ -59,8 +69,56 @@ const App: React.FC = () => {
     { code: 'NFS002', name: '农夫山泉北京分公司' },
     { code: 'NFS003', name: '农夫山泉上海分公司' }
   ]);
+  const [supplierModalVisible, setSupplierModalVisible] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<typeof currentSupplier | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 双 Sider 导航状态
+  const getInitialModule = () => {
+    const path = location.pathname;
+    if (path.startsWith('/orders') || path.startsWith('/shipments') || path.startsWith('/inventory') ||
+        path.startsWith('/sales') || path.startsWith('/bid-management') || path.startsWith('/price-management') ||
+        path.startsWith('/quality') || path.startsWith('/product-management')) return 'business';
+    if (path.startsWith('/reconciliation') || path.startsWith('/settlement-application') ||
+        path.startsWith('/invoices') || path.startsWith('/payments') || path.startsWith('/fees') || path.startsWith('/finance')) return 'financial';
+    if (path.startsWith('/account')) return 'enterprise';
+    return 'business';
+  };
+  const [selectedModule, setSelectedModule] = useState<string>(getInitialModule);
+  const [subMenuOpen, setSubMenuOpen] = useState<boolean>(true);
+
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem('supplier_token'));
+  }, []);
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('supplier_token');
+    localStorage.removeItem('supplier_phone');
+    setIsLoggedIn(false);
+  };
+
+  const handleOpenSupplierModal = () => {
+    setSelectedSupplier(null);
+    setSupplierModalVisible(true);
+  };
+
+  const handleSwitchSupplier = () => {
+    if (selectedSupplier && selectedSupplier.code !== currentSupplier.code) {
+      setCurrentSupplier(selectedSupplier);
+      setSupplierModalVisible(false);
+      message.success(`已切换至 ${selectedSupplier.name}`);
+    }
+  };
+
+  // 不要在这里再包一层 Router，AppWrapper 已提供 Router，嵌套会报错
+  if (!isLoggedIn) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
 
   const getPageTitle = (path: string) => {
     const titles: any = {
@@ -73,8 +131,9 @@ const App: React.FC = () => {
       '/price-management': '价格管理',
       '/quality': '质量管理',
       '/reconciliation': '财务对账',
+      '/settlement-application': '对账申请',
       '/invoices': '发票管理',
-      '/payments': '收款管理',
+      '/payments': '交款管理',
       '/fees': '费用单管理',
       '/finance': '供应链金融',
       '/account/company': '企业信息管理',
@@ -83,252 +142,131 @@ const App: React.FC = () => {
       '/service': '服务中心',
       '/product-management': '商品管理',
       '/contracts': '合同管理',
+      '/announcements': '公告通知',
     };
     return titles[path] || '供应商协同平台';
   };
 
-  const menuItems = [
-    {
-      key: '/',
-      icon: <DashboardOutlined />,
-      label: '工作台',
-      onClick: () => navigate('/'),
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'business',
-      icon: <ShoppingOutlined />,
-      label: '业务中心',
-      children: [
-        {
-          key: '/orders',
-          icon: <FileTextOutlined />,
-          label: '订单管理',
-          onClick: () => navigate('/orders'),
-        },
-        {
-          key: '/shipments',
-          icon: <TruckOutlined />,
-          label: '发货管理',
-          onClick: () => navigate('/shipments'),
-        },
-        {
-          key: '/inventory',
-          icon: <BarChartOutlined />,
-          label: '库存查询',
-          onClick: () => navigate('/inventory'),
-        },
-        {
-          key: '/sales',
-          icon: <BarChartOutlined />,
-          label: '销售数据',
-          onClick: () => navigate('/sales'),
-        },
-        {
-          key: '/bid-management',
-          icon: <ShoppingOutlined />,
-          label: '竞价管理',
-          onClick: () => navigate('/bid-management'),
-        },
-        {
-          key: '/price-management',
-          icon: <DollarOutlined />,
-          label: '价格管理',
-          onClick: () => navigate('/price-management'),
-        },
-        {
-          key: '/quality',
-          icon: <SafetyOutlined />,
-          label: '质量管理',
-          onClick: () => navigate('/quality'),
-        },
-        {
-          key: '/product-management',
-          icon: <ProductOutlined />,
-          label: '商品管理',
-          onClick: () => navigate('/product-management'),
-        },
-      ],
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'financial',
-      icon: <MoneyCollectOutlined />,
-      label: '财务中心',
-      children: [
-        {
-          key: '/reconciliation',
-          icon: <FileDoneOutlined />,
-          label: '财务对账',
-          onClick: () => navigate('/reconciliation'),
-        },
-        {
-          key: '/invoices',
-          icon: <FileDoneOutlined />,
-          label: '发票管理',
-          onClick: () => navigate('/invoices'),
-        },
-        {
-          key: '/payments',
-          icon: <CreditCardOutlined />,
-          label: '收款管理',
-          onClick: () => navigate('/payments'),
-        },
-        {
-          key: '/fees',
-          icon: <FileDoneOutlined />,
-          label: '费用单管理',
-          onClick: () => navigate('/fees'),
-        },
-        {
-          key: '/finance',
-          icon: <BankOutlined />,
-          label: '供应链金融',
-          onClick: () => navigate('/finance'),
-        },
-      ],
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'enterprise',
-      icon: <UserOutlined />,
-      label: '企业中心',
-      children: [
-        {
-          key: '/account/company',
-          label: '企业信息管理',
-          onClick: () => navigate('/account/company'),
-        },
-        {
-          key: '/account/certificates',
-          label: '供应商资质证照',
-          onClick: () => navigate('/account/certificates'),
-        },
-        {
-          key: '/account/users',
-          label: '人员管理',
-          onClick: () => navigate('/account/users'),
-        },
-      ],
-    },
-    {
-      key: '/contracts',
-      icon: <FileDoneOutlined />,
-      label: '合同管理',
-      onClick: () => navigate('/contracts'),
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: '/service',
-      icon: <CustomerServiceOutlined />,
-      label: '服务中心',
-      onClick: () => navigate('/service'),
-    },
+  // 一级菜单（左侧 80px 固定 Sider）
+  const primaryMenuItems = [
+    { key: '/', icon: <DashboardOutlined />, label: '工作台' },
+    { key: 'business', icon: <ShoppingOutlined />, label: '业务中心' },
+    { key: 'financial', icon: <MoneyCollectOutlined />, label: '财务中心' },
+    { key: 'enterprise', icon: <UserOutlined />, label: '企业中心' },
+    { key: '/contracts', icon: <FileDoneOutlined />, label: '合同管理' },
+    { key: '/service', icon: <CustomerServiceOutlined />, label: '服务中心' },
+    { key: '/announcements', icon: <BellOutlined />, label: '公告通知' },
   ];
+
+  // 二级菜单映射（按一级菜单 key 索引）
+  const subMenuMap: Record<string, { name: string; items: any[] }> = {
+    business: {
+      name: '业务中心',
+      items: [
+        { key: '/orders', icon: <FileTextOutlined />, label: '订单管理' },
+        { key: '/shipments', icon: <TruckOutlined />, label: '发货管理' },
+        { key: '/inventory', icon: <BarChartOutlined />, label: '库存查询' },
+        { key: '/sales', icon: <BarChartOutlined />, label: '销售数据' },
+        { key: '/bid-management', icon: <ShoppingOutlined />, label: '竞价管理' },
+        { key: '/price-management', icon: <DollarOutlined />, label: '价格管理' },
+        { key: '/quality', icon: <SafetyOutlined />, label: '质量管理' },
+        { key: '/product-management', icon: <ProductOutlined />, label: '商品管理' },
+      ],
+    },
+    financial: {
+      name: '财务中心',
+      items: [
+        { key: '/reconciliation', icon: <FileDoneOutlined />, label: '财务对账' },
+        { key: '/settlement-application', icon: <FileTextOutlined />, label: '对账申请' },
+        { key: '/invoices', icon: <FileDoneOutlined />, label: '发票管理' },
+        { key: '/payments', icon: <CreditCardOutlined />, label: '交款管理' },
+        { key: '/fees', icon: <FileDoneOutlined />, label: '费用单管理' },
+        { key: '/finance', icon: <BankOutlined />, label: '供应链金融' },
+      ],
+    },
+    enterprise: {
+      name: '企业中心',
+      items: [
+        { key: '/account/company', icon: <UserOutlined />, label: '企业信息管理' },
+        { key: '/account/certificates', icon: <SafetyOutlined />, label: '供应商资质证照' },
+        { key: '/account/users', icon: <TeamOutlined />, label: '人员管理' },
+      ],
+    },
+  };
+
+  // 一级菜单点击逻辑
+  const handlePrimaryMenuClick = (key: string) => {
+    if (subMenuMap[key]) {
+      // 有子菜单
+      if (key === selectedModule) {
+        setSubMenuOpen(!subMenuOpen);
+      } else {
+        setSelectedModule(key);
+        setSubMenuOpen(true);
+      }
+    } else {
+      // 无子菜单，直接导航
+      navigate(key);
+      setSubMenuOpen(false);
+    }
+  };
+
+  const currentSubMenu = subMenuMap[selectedModule] || subMenuMap.business;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        width={200}
-        style={{ backgroundColor: '#001529' }}
-      >
-        <div style={{ padding: '20px', color: 'white', fontSize: '18px', fontWeight: 'bold' }}>
-          {!collapsed && '供应链平台'}
-        </div>
-
-        {/* 供应商切换区域 */}
-        {!collapsed ? (
-          <div style={{ padding: '0 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', marginBottom: '8px' }}>
-              当前供应商
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ color: 'white', fontSize: '14px', fontWeight: 'bold', flex: 1 }}>
-                {currentSupplier.name}
-              </div>
-              <Dropdown
-                menu={{
-                  items: availableSuppliers.map(supplier => ({
-                    key: supplier.code,
-                    label: supplier.name,
-                    onClick: () => setCurrentSupplier(supplier)
-                  }))
-                }}
-                placement="bottomRight"
-                trigger={['click']}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<UserOutlined />}
-                  style={{
-                    color: 'rgba(255,255,255,0.8)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    marginLeft: '8px'
-                  }}
-                />
-              </Dropdown>
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '4px' }}>
-              代码: {currentSupplier.code}
-            </div>
-          </div>
-        ) : (
-          <div style={{ padding: '16px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
-            <Dropdown
-              menu={{
-                items: availableSuppliers.map(supplier => ({
-                  key: supplier.code,
-                  label: supplier.name,
-                  onClick: () => setCurrentSupplier(supplier)
-                }))
-              }}
-              placement="right"
-              trigger={['click']}
-            >
-              <Button
-                type="text"
-                size="small"
-                icon={<UserOutlined />}
-                style={{
-                  color: 'rgba(255,255,255,0.8)',
-                  border: '1px solid rgba(255,255,255,0.2)'
-                }}
-                title={`当前供应商: ${currentSupplier.name}`}
-              />
-            </Dropdown>
-          </div>
-        )}
-
+      {/* 左侧一级菜单（80px 固定 Sider） */}
+      <Sider width={80} className="primary-sider">
+        <div className="primary-logo">供</div>
         <Menu
           theme="dark"
+          mode="vertical"
+          selectedKeys={[selectedModule]}
+          items={primaryMenuItems}
+          onClick={({ key }) => handlePrimaryMenuClick(key)}
+          className="primary-menu"
+        />
+      </Sider>
+
+      {/* 左侧二级菜单（200px，可收起） */}
+      <Sider
+        width={200}
+        collapsedWidth={0}
+        collapsed={!subMenuOpen || !subMenuMap[selectedModule]}
+        className="secondary-sider"
+      >
+        <div className="secondary-title">{currentSubMenu.name}</div>
+        <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
-          items={menuItems}
+          items={currentSubMenu.items}
+          onClick={({ key }) => navigate(key)}
+          className="secondary-menu"
         />
       </Sider>
 
       <Layout>
         <Header style={{ background: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              style={{ fontSize: '16px' }}
-            />
             <h1 style={{ marginLeft: '16px', marginBottom: 0, color: '#1890ff' }}>{getPageTitle(location.pathname)}</h1>
+
+            {/* 当前供应商信息 */}
+            <div style={{
+              marginLeft: '20px',
+              padding: '4px 12px',
+              backgroundColor: '#e6f7ff',
+              border: '1px solid #91d5ff',
+              borderRadius: '4px',
+              fontSize: '13px',
+              color: '#1890ff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontWeight: '500' }}>{currentSupplier.name}</span>
+              <span style={{ color: '#bfbfbf' }}>|</span>
+              <span>{currentSupplier.code}</span>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -359,6 +297,20 @@ const App: React.FC = () => {
               title="消息通知"
             />
 
+            {/* 切换供应商按钮 */}
+            <Button
+              type="default"
+              icon={<SwapOutlined />}
+              onClick={handleOpenSupplierModal}
+              style={{
+                color: '#1890ff',
+                borderColor: '#1890ff',
+                borderRadius: '4px',
+              }}
+            >
+              切换供应商
+            </Button>
+
             {/* 用户头像下拉菜单 */}
             <Dropdown
               menu={{
@@ -380,6 +332,7 @@ const App: React.FC = () => {
                     key: 'logout',
                     label: '退出登录',
                     danger: true,
+                    onClick: handleLogout,
                   },
                 ],
               }}
@@ -418,6 +371,10 @@ const App: React.FC = () => {
             <Route path="/service" element={<Service />} />
             <Route path="/product-management" element={<ProductManagement />} />
             <Route path="/contracts" element={<Contracts />} />
+            <Route path="/announcements" element={<Announcements />} />
+            <Route path="/settlement-application" element={<SettlementApplication />} />
+            <Route path="/api-result/success" element={<ApiResult />} />
+            <Route path="/api-result/error" element={<ApiResult />} />
           </Routes>
         </Content>
 
@@ -425,6 +382,57 @@ const App: React.FC = () => {
           Supply Chain Collaboration Platform © 2024
         </Footer>
       </Layout>
+
+      {/* 切换供应商弹窗 */}
+      <Modal
+        title="切换供应商"
+        open={supplierModalVisible}
+        onCancel={() => setSupplierModalVisible(false)}
+        footer={null}
+        width={560}
+      >
+        <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: '4px' }}>
+          <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>当前供应商</div>
+          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#333' }}>{currentSupplier.name}</div>
+          <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>代码: {currentSupplier.code}</div>
+        </div>
+
+        <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>请选择要切换的供应商</div>
+        <Radio.Group
+          value={selectedSupplier?.code}
+          onChange={(e) => {
+            const supplier = availableSuppliers.find(s => s.code === e.target.value);
+            setSelectedSupplier(supplier);
+          }}
+          style={{ width: '100%' }}
+        >
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            {availableSuppliers.map(supplier => (
+              <Radio key={supplier.code} value={supplier.code} style={{ display: 'block' }}>
+                <div>
+                  <div style={{ fontWeight: '500' }}>{supplier.name}</div>
+                  <div style={{ fontSize: '12px', color: '#999' }}>代码: {supplier.code}</div>
+                </div>
+              </Radio>
+            ))}
+          </Space>
+        </Radio.Group>
+
+        <div style={{ marginTop: '24px', textAlign: 'right' }}>
+          <Space>
+            <Button onClick={() => setSupplierModalVisible(false)}>
+              取消
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleSwitchSupplier}
+              disabled={!selectedSupplier || selectedSupplier.code === currentSupplier.code}
+            >
+              确认切换
+            </Button>
+          </Space>
+        </div>
+      </Modal>
 
       {/* AI智能助手侧边面板 */}
       {aiAssistantVisible && (

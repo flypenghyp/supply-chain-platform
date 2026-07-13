@@ -98,7 +98,7 @@ const Suppliers: React.FC = () => {
       <Card>
         <Row style={{ marginBottom: '16px' }}>
           <Col>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddClick}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddClick} style={{ height: 32 }}>
               Add Supplier
             </Button>
           </Col>

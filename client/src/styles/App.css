@@ -31,6 +31,97 @@
   margin-left: 4px;
 }
 
+/* 双 Sider 导航样式 */
+.primary-sider {
+  background-color: #001529 !important;
+  overflow: hidden;
+}
+
+.primary-logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFD700;
+  font-size: 24px;
+  font-weight: bold;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.primary-menu {
+  background: transparent !important;
+  border-right: none !important;
+}
+
+.primary-menu .ant-menu-item {
+  padding: 0 !important;
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0 !important;
+}
+
+.primary-menu .ant-menu-item .anticon {
+  font-size: 20px;
+  margin: 0 !important;
+}
+
+.primary-menu .ant-menu-item .ant-menu-title-content {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.primary-menu .ant-menu-item-selected {
+  background: #1890ff !important;
+  color: #fff !important;
+}
+
+.secondary-sider {
+  background: #fff !important;
+  border-right: 1px solid #f0f0f0;
+  transition: width 0.3s ease, flex 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.secondary-sider.ant-layout-sider-collapsed .secondary-title,
+.secondary-sider.ant-layout-sider-collapsed .secondary-menu {
+  display: none;
+}
+
+.secondary-title {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.secondary-menu {
+  border-right: none !important;
+  padding-top: 8px;
+}
+
+.secondary-menu .ant-menu-item {
+  margin: 4px 8px !important;
+  border-radius: 4px;
+}
+
+.secondary-menu .ant-menu-item:hover {
+  background: #e6f7ff !important;
+}
+
+.secondary-menu .ant-menu-item-selected {
+  background: #e6f7ff !important;
+  color: #1890ff !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .ant-layout-header h1 {

@@ -11,6 +11,7 @@ import {
   BarChartOutlined, ClockCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter';
 
 const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
@@ -534,43 +535,37 @@ const PriceManagement: React.FC = () => {
             key="promotions"
           >
             {/* 促销筛选条件 */}
-            <Row gutter={16} style={{ marginBottom: '16px' }}>
-              <Col xs={24} sm={8} lg={4}>
-                <Select
-                  placeholder="促销状态"
-                  style={{ width: '100%' }}
-                  allowClear
-                  value={filters.status}
-                  onChange={(value) => handleFilterChange({ ...filters, status: value })}
-                >
-                  <Select.Option value="pending">待审核</Select.Option>
-                  <Select.Option value="active">进行中</Select.Option>
-                  <Select.Option value="completed">已完成</Select.Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={8} lg={4}>
-                <Select
-                  placeholder="促销类型"
-                  style={{ width: '100%' }}
-                  allowClear
-                  value={filters.type}
-                  onChange={(value) => handleFilterChange({ ...filters, type: value })}
-                >
-                  <Select.Option value="discount">折扣</Select.Option>
-                  <Select.Option value="bundle">买赠</Select.Option>
-                  <Select.Option value="gift">满减</Select.Option>
-                  <Select.Option value="special">特价</Select.Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={8} lg={4}>
+            <AdvancedSearchFilter
+              fields={[
+                { key: 'status', label: '促销状态', type: 'select', placeholder: '请选择促销状态',
+                  options: [
+                    { label: '待审核', value: 'pending' },
+                    { label: '进行中', value: 'active' },
+                    { label: '已完成', value: 'completed' }
+                  ]
+                },
+                { key: 'type', label: '促销类型', type: 'select', placeholder: '请选择促销类型',
+                  options: [
+                    { label: '折扣', value: 'discount' },
+                    { label: '买赠', value: 'bundle' },
+                    { label: '满减', value: 'gift' },
+                    { label: '特价', value: 'special' }
+                  ]
+                }
+              ]}
+              values={filters}
+              onChange={(k, v) => handleFilterChange({ ...filters, [k]: v })}
+              onSearch={() => handleFilterChange(filters)}
+              onReset={() => handleFilterChange({ status: '', type: '', product: '' })}
+              extraActions={
                 <Space>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePromotion}>
+                  <Button type="primary" onClick={handleCreatePromotion} style={{ height: 32 }}>
                     创建促销
                   </Button>
-                  <Button icon={<FileTextOutlined />}>导出报表</Button>
+                  <Button style={{ height: 32 }}>导出报表</Button>
                 </Space>
-              </Col>
-            </Row>
+              }
+            />
 
             {/* 促销统计概览 */}
             <Row gutter={16} style={{ marginBottom: '24px' }}>
@@ -640,51 +635,38 @@ const PriceManagement: React.FC = () => {
             key="adjustments"
           >
             {/* 价格调整筛选条件 */}
-            <Row gutter={16} style={{ marginBottom: '16px' }}>
-              <Col xs={24} sm={8} lg={4}>
-                <Select
-                  placeholder="调价类型"
-                  style={{ width: '100%' }}
-                  allowClear
-                  value={filters.type}
-                  onChange={(value) => handleFilterChange({ ...filters, type: value })}
-                >
-                  <Select.Option value="retailer_adjustment">零售商调价</Select.Option>
-                  <Select.Option value="supplier_adjustment">供应商调价</Select.Option>
-                  <Select.Option value="supplier_promotion">供应商促销调价</Select.Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={8} lg={4}>
-                <Select
-                  placeholder="审核状态"
-                  style={{ width: '100%' }}
-                  allowClear
-                  value={filters.status}
-                  onChange={(value) => handleFilterChange({ ...filters, status: value })}
-                >
-                  <Select.Option value="pending">待审核</Select.Option>
-                  <Select.Option value="approved">已通过</Select.Option>
-                  <Select.Option value="rejected">已驳回</Select.Option>
-                  <Select.Option value="effective">已生效</Select.Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={8} lg={4}>
-                <Input
-                  placeholder="搜索商品"
-                  value={filters.product}
-                  onChange={(e) => handleFilterChange({ ...filters, product: e.target.value })}
-                  prefix={<FileTextOutlined />}
-                />
-              </Col>
-              <Col xs={24} sm={8} lg={4}>
+            <AdvancedSearchFilter
+              fields={[
+                { key: 'type', label: '调价类型', type: 'select', placeholder: '请选择调价类型',
+                  options: [
+                    { label: '零售商调价', value: 'retailer_adjustment' },
+                    { label: '供应商调价', value: 'supplier_adjustment' },
+                    { label: '供应商促销调价', value: 'supplier_promotion' }
+                  ]
+                },
+                { key: 'status', label: '审核状态', type: 'select', placeholder: '请选择审核状态',
+                  options: [
+                    { label: '待审核', value: 'pending' },
+                    { label: '已通过', value: 'approved' },
+                    { label: '已驳回', value: 'rejected' },
+                    { label: '已生效', value: 'effective' }
+                  ]
+                },
+                { key: 'product', label: '搜索商品', type: 'input', placeholder: '请输入商品名称或编码' }
+              ]}
+              values={filters}
+              onChange={(k, v) => handleFilterChange({ ...filters, [k]: v })}
+              onSearch={() => handleFilterChange(filters)}
+              onReset={() => handleFilterChange({ status: '', type: '', product: '' })}
+              extraActions={
                 <Space>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleNewAdjustment}>
+                  <Button type="primary" onClick={handleNewAdjustment} style={{ height: 32 }}>
                     申请调价
                   </Button>
-                  <Button icon={<FileTextOutlined />}>导出报表</Button>
+                  <Button style={{ height: 32 }}>导出报表</Button>
                 </Space>
-              </Col>
-            </Row>
+              }
+            />
 
             {/* 价格调整统计概览 */}
             <Row gutter={16} style={{ marginBottom: '24px' }}>

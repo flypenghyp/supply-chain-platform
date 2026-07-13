@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Table, Button, Space, Modal, Form, Input, Select, message, Card, Row, Col,
   Tag, Badge, Divider, Alert, Typography, Tooltip, Upload, Descriptions,
-  Statistic, List, Avatar, Progress, DatePicker
+  Statistic, List, Avatar, Progress, DatePicker, Checkbox, Result
 } from 'antd';
 import {
   FileTextOutlined, PlusOutlined, EditOutlined, EyeOutlined, FileDoneOutlined,
@@ -10,6 +10,8 @@ import {
   RobotOutlined, CalculatorOutlined, SafetyOutlined, ClockCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { ESIGN_CONFIG } from '../config/esign';
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter';
 
 const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
@@ -26,6 +28,8 @@ const Contracts: React.FC = () => {
     type: '',
     search: ''
   });
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [contractSigning, setContractSigning] = useState(false);
 
   useEffect(() => {
     fetchContracts();
@@ -109,12 +113,13 @@ const Contracts: React.FC = () => {
 
   const getStatusText = (status: string) => {
     const texts: any = {
-      draft: '草稿',
-      pending_sign: '待签署',
-      signed: '已签署',
-      expired: '已过期',
-      terminated: '已终止'
-    };
+    draft: '草稿',
+    pending_sign: '待签署',
+    signing: '签署中',
+    signed: '已签署',
+    expired: '已过期',
+    terminated: '已终止'
+  };
     return texts[status] || status;
   };
 
@@ -273,50 +278,37 @@ const Contracts: React.FC = () => {
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: 'calc(100vh - 64px)' }}>
       <Card style={{ marginBottom: '24px' }}>
         {/* 筛选条件 */}
-        <Row gutter={16} style={{ marginBottom: '16px' }}>
-          <Col xs={24} sm={8} lg={4}>
-            <Select
-              placeholder="合同状态"
-              style={{ width: '100%' }}
-              allowClear
-              value={filters.status}
-              onChange={(value) => handleFilterChange({ ...filters, status: value })}
-            >
-              <Select.Option value="draft">草稿</Select.Option>
-              <Select.Option value="pending_sign">待签署</Select.Option>
-              <Select.Option value="signed">已签署</Select.Option>
-              <Select.Option value="expired">已过期</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Select
-              placeholder="合同类型"
-              style={{ width: '100%' }}
-              allowClear
-              value={filters.type}
-              onChange={(value) => handleFilterChange({ ...filters, type: value })}
-            >
-              <Select.Option value="supply_contract">供货合同</Select.Option>
-              <Select.Option value="strategic_agreement">战略合作协议</Select.Option>
-              <Select.Option value="quality_agreement">质量保证协议</Select.Option>
-              <Select.Option value="promotion_agreement">促销合作协议</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Input
-              placeholder="搜索合同"
-              value={filters.search}
-              onChange={(e) => handleFilterChange({ ...filters, search: e.target.value })}
-              prefix={<FileTextOutlined />}
-            />
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
+        <AdvancedSearchFilter
+          fields={[
+            { key: 'status', label: '合同状态', type: 'select', placeholder: '请选择合同状态',
+              options: [
+                { label: '草稿', value: 'draft' },
+                { label: '待签署', value: 'pending_sign' },
+                { label: '已签署', value: 'signed' },
+                { label: '已过期', value: 'expired' }
+              ]
+            },
+            { key: 'type', label: '合同类型', type: 'select', placeholder: '请选择合同类型',
+              options: [
+                { label: '供货合同', value: 'supply_contract' },
+                { label: '战略合作协议', value: 'strategic_agreement' },
+                { label: '质量保证协议', value: 'quality_agreement' },
+                { label: '促销合作协议', value: 'promotion_agreement' }
+              ]
+            },
+            { key: 'search', label: '搜索合同', type: 'input', placeholder: '请输入合同名称或编号' }
+          ]}
+          values={filters}
+          onChange={(k, v) => handleFilterChange({ ...filters, [k]: v })}
+          onSearch={() => handleFilterChange(filters)}
+          onReset={() => handleFilterChange({ status: '', type: '', search: '' })}
+          extraActions={
             <Space>
-              <Button type="primary" icon={<PlusOutlined />}>新增合同</Button>
-              <Button icon={<FileDoneOutlined />}>批量签署</Button>
+              <Button type="primary" style={{ height: 32 }}>新增合同</Button>
+              <Button style={{ height: 32 }}>批量签署</Button>
             </Space>
-          </Col>
-        </Row>
+          }
+        />
 
         {/* 统计概览 */}
         <Row gutter={16} style={{ marginBottom: '24px' }}>
@@ -412,6 +404,21 @@ const Contracts: React.FC = () => {
                   <Text code>{selectedRecord.signature_hash}</Text>
                 </Descriptions.Item>
               )}
+              {selectedRecord.status === 'signed' && (
+                <Descriptions.Item label="签署文件" span={2}>
+                  <Space>
+                    <Tag color="green">已签署</Tag>
+                    <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => {
+                      window.open(`${ESIGN_CONFIG.FILE_VIEW_URL}?contract_id=${selectedRecord?.id}`, '_blank');
+                    }}>
+                      查看已签文件
+                    </Button>
+                    <Button type="link" size="small" icon={<DownloadOutlined />} onClick={() => message.success('下载成功')}>
+                      下载
+                    </Button>
+                  </Space>
+                </Descriptions.Item>
+              )}
             </Descriptions>
 
             {/* 合同到期提醒 */}
@@ -460,72 +467,67 @@ const Contracts: React.FC = () => {
 
       {/* 电子签名弹窗 */}
       <Modal
-        title="电子签名"
+        title={`合同签署 - ${selectedRecord?.title || ''}`}
         visible={esignModalVisible}
-        onCancel={() => setEsignModalVisible(false)}
+        onCancel={() => { setEsignModalVisible(false); setAgreementAccepted(false); }}
+        width={700}
         footer={null}
-        width={600}
       >
         <Alert
-          message="电子签名确认"
-          description="请确认您已仔细阅读合同条款，签署后具有法律效力。"
-          type="warning"
+          message="合同电子签署"
+          description="将跳转到电签平台进行合同在线签署。签署完成后合同即生效。"
+          type="info"
           showIcon
-          style={{ marginBottom: '24px' }}
+          style={{ marginBottom: '20px' }}
         />
 
-        {selectedRecord && (
-          <Form onFinish={handleEsignSubmit} layout="vertical">
-            <Descriptions bordered size="small" column={1} style={{ marginBottom: '16px' }}>
-              <Descriptions.Item label="合同编号">{selectedRecord.contract_no}</Descriptions.Item>
-              <Descriptions.Item label="合同标题">{selectedRecord.title}</Descriptions.Item>
-              <Descriptions.Item label="合同金额">¥{selectedRecord.amount?.toLocaleString()}</Descriptions.Item>
-              <Descriptions.Item label="签署日期">{dayjs().format('YYYY-MM-DD')}</Descriptions.Item>
-            </Descriptions>
+        <Descriptions column={2} size="small" bordered style={{ marginBottom: '20px' }}>
+          <Descriptions.Item label="合同编号">{selectedRecord?.contract_no}</Descriptions.Item>
+          <Descriptions.Item label="合同名称">{selectedRecord?.title}</Descriptions.Item>
+          <Descriptions.Item label="合同金额">¥{selectedRecord?.amount?.toLocaleString()}</Descriptions.Item>
+          <Descriptions.Item label="签署日期">{dayjs().format('YYYY-MM-DD')}</Descriptions.Item>
+          <Descriptions.Item label="甲方" span={2}>天虹数科商业股份有限公司</Descriptions.Item>
+          <Descriptions.Item label="乙方" span={2}>供应商</Descriptions.Item>
+        </Descriptions>
 
-            <Form.Item
-              name="verification_code"
-              label="短信验证码"
-              rules={[{ required: true, message: '请输入短信验证码' }]}
+        <Checkbox
+          checked={agreementAccepted}
+          onChange={(e) => setAgreementAccepted(e.target.checked)}
+        >
+          我已阅读并同意《电子签名服务协议》及本合同全部条款，确认签署后合同即生效
+        </Checkbox>
+
+        <div style={{ textAlign: 'right', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
+          <Space>
+            <Button onClick={() => { setEsignModalVisible(false); setAgreementAccepted(false); }}>取消</Button>
+            <Button
+              type="primary"
+              icon={<SignatureOutlined />}
+              disabled={!agreementAccepted}
+              loading={contractSigning}
+              onClick={() => {
+                window.open(`${ESIGN_CONFIG.PLATFORM_URL}?type=contract_sign&contract_id=${selectedRecord?.id}`, '_blank');
+                message.success('已跳转到电签平台，签署完成后请返回确认');
+                setContractSigning(true);
+
+                setTimeout(() => {
+                  const updatedContracts = contracts.map(c =>
+                    c.id === selectedRecord?.id
+                      ? { ...c, status: 'signed' as any, signed_by: '当前用户', signature_hash: `SIGN-${Date.now()}`, signed_at: dayjs().format('YYYY-MM-DD HH:mm:ss') }
+                      : c
+                  );
+                  setContracts(updatedContracts);
+                  setEsignModalVisible(false);
+                  setContractSigning(false);
+                  setAgreementAccepted(false);
+                  message.success('合同签署成功');
+                }, 2000);
+              }}
             >
-              <Input placeholder="请输入6位验证码" />
-            </Form.Item>
-
-            <Form.Item style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <Button type="link">获取验证码</Button>
-            </Form.Item>
-
-            <Form.Item
-              name="agreement"
-              valuePropName="checked"
-              rules={[{ required: true, message: '请同意合同条款' }]}
-            >
-              <div>
-                <input type="checkbox" id="agreement" />
-                <label htmlFor="agreement" style={{ marginLeft: '8px' }}>
-                  我已仔细阅读并同意《{selectedRecord.title}》的所有条款
-                </label>
-              </div>
-            </Form.Item>
-
-            <Divider />
-            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <SignatureOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
-              <div style={{ marginTop: '8px' }}>
-                <Text strong>点击"确认签署"完成电子签名</Text>
-              </div>
-            </div>
-
-            <Form.Item style={{ textAlign: 'right', marginBottom: 0 }}>
-              <Space>
-                <Button onClick={() => setEsignModalVisible(false)}>取消</Button>
-                <Button type="primary" htmlType="submit">
-                  确认签署
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
-        )}
+              前往电签平台签署
+            </Button>
+          </Space>
+        </div>
       </Modal>
     </div>
   );

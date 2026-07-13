@@ -10,6 +10,7 @@ import {
   SafetyOutlined, BarcodeOutlined, ExperimentOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -274,50 +275,37 @@ const ProductManagement: React.FC = () => {
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: 'calc(100vh - 64px)' }}>
       <Card style={{ marginBottom: '24px' }}>
         {/* 筛选条件 */}
-        <Row gutter={16} style={{ marginBottom: '16px' }}>
-          <Col xs={24} sm={8} lg={4}>
-            <Select
-              placeholder="商品状态"
-              style={{ width: '100%' }}
-              allowClear
-              value={filters.status}
-              onChange={(value) => handleFilterChange({ ...filters, status: value })}
-            >
-              <Select.Option value="active">已上架</Select.Option>
-              <Select.Option value="pending_review">待审核</Select.Option>
-              <Select.Option value="inactive">已下架</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Select
-              placeholder="商品分类"
-              style={{ width: '100%' }}
-              allowClear
-              value={filters.category}
-              onChange={(value) => handleFilterChange({ ...filters, category: value })}
-            >
-              <Select.Option value="饮用水">饮用水</Select.Option>
-              <Select.Option value="乳制品">乳制品</Select.Option>
-              <Select.Option value="烘焙食品">烘焙食品</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Input
-              placeholder="搜索商品"
-              value={filters.search}
-              onChange={(e) => handleFilterChange({ ...filters, search: e.target.value })}
-              prefix={<ProductOutlined />}
-            />
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
+        <AdvancedSearchFilter
+          fields={[
+            { key: 'status', label: '商品状态', type: 'select', placeholder: '请选择商品状态',
+              options: [
+                { label: '已上架', value: 'active' },
+                { label: '待审核', value: 'pending_review' },
+                { label: '已下架', value: 'inactive' }
+              ]
+            },
+            { key: 'category', label: '商品分类', type: 'select', placeholder: '请选择商品分类',
+              options: [
+                { label: '饮用水', value: '饮用水' },
+                { label: '乳制品', value: '乳制品' },
+                { label: '烘焙食品', value: '烘焙食品' }
+              ]
+            },
+            { key: 'search', label: '搜索商品', type: 'input', placeholder: '请输入商品名称或编码' }
+          ]}
+          values={filters}
+          onChange={(k, v) => handleFilterChange({ [k]: v })}
+          onSearch={() => handleFilterChange(filters)}
+          onReset={() => handleFilterChange({ status: '', category: '', search: '' })}
+          extraActions={
             <Space>
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleNewProduct}>
+              <Button type="primary" onClick={handleNewProduct} style={{ height: 32 }}>
                 新品提报
               </Button>
-              <Button icon={<FileTextOutlined />}>批量导入</Button>
+              <Button style={{ height: 32 }}>批量导入</Button>
             </Space>
-          </Col>
-        </Row>
+          }
+        />
 
         {/* 统计概览 */}
         <Row gutter={16} style={{ marginBottom: '24px' }}>

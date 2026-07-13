@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, Statistic, List, Button, Badge, Avatar, Divider, Progress, Tag, message, Empty } from 'antd';
+import { Row, Col, Card, Statistic, List, Button, Badge, Avatar, Divider, Progress, Tag, message, Empty, Result } from 'antd';
 import {
   ShoppingOutlined,
   TruckOutlined,
@@ -14,14 +14,128 @@ import {
   ArrowUpOutlined,
   ArrowDownOutlined,
   MessageOutlined,
-  BellOutlined
+  BellOutlined,
+  SafetyCertificateOutlined
 } from '@ant-design/icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { ESIGN_CONFIG } from '../config/esign';
+import PersonalAuthModal from './components/PersonalAuthModal';
+
+interface Announcement {
+  id: string;
+  title: string;
+  type: 'notice' | 'announcement';
+  content: string;
+  is_important: boolean;
+  is_published: boolean;
+  expired_at: string;
+  created_at: string;
+  created_by: string;
+  is_read?: boolean;
+  attachments?: string[];
+}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [personalAuthVisible, setPersonalAuthVisible] = useState(false);
+
+  const mockAnnouncements: Announcement[] = [
+    {
+      id: '1',
+      title: '2024年春节放假通知',
+      type: 'notice',
+      content: '春节放假时间为2024年2月9日至2月17日，共9天。请各供应商提前做好备货安排。',
+      is_important: true,
+      is_published: true,
+      expired_at: '2024-02-20',
+      created_at: '2024-01-20',
+      created_by: 'admin',
+    },
+    {
+      id: '2',
+      title: '新供应商入驻流程调整公告',
+      type: 'announcement',
+      content: '自2024年2月1日起，新供应商入驻需提供完整的资质证明文件，包括营业执照、食品经营许可证等。',
+      is_important: false,
+      is_published: true,
+      expired_at: '2024-02-18',
+      created_at: '2024-01-18',
+      created_by: 'admin',
+    },
+    {
+      id: '3',
+      title: '1月份结算时间安排',
+      type: 'notice',
+      content: '1月份对账结算时间为2024年2月5日至2月8日，请各供应商按时提交对账单据。',
+      is_important: true,
+      is_published: true,
+      expired_at: '2024-02-15',
+      created_at: '2024-01-15',
+      created_by: 'admin',
+    },
+    {
+      id: '4',
+      title: '关于规范商品标签的公告',
+      type: 'announcement',
+      content: '为进一步规范商品管理，自2024年2月起，所有商品必须使用统一格式的标签，包含商品名称、规格、保质期、生产批号等信息。',
+      is_important: false,
+      is_published: true,
+      expired_at: '2024-03-01',
+      created_at: '2024-01-12',
+      created_by: 'admin',
+      attachments: ['商品标签模板.pdf'],
+    },
+    {
+      id: '5',
+      title: '年度供应商大会通知',
+      type: 'notice',
+      content: '2024年度供应商大会将于2024年3月15日在上海国际会议中心召开，请各供应商派代表参加。',
+      is_important: true,
+      is_published: true,
+      expired_at: '2024-03-10',
+      created_at: '2024-01-10',
+      created_by: 'admin',
+      attachments: ['大会议程.docx', '参会回执.xlsx'],
+    },
+    {
+      id: '6',
+      title: '春节后订货需求统计',
+      type: 'notice',
+      content: '请各供应商于2024年2月20日前提交春节后的订货需求预测，以便我们做好库存规划。',
+      is_important: false,
+      is_published: true,
+      expired_at: '2024-02-20',
+      created_at: '2024-01-08',
+      created_by: 'admin',
+    },
+  ];
+
+  const loadAnnouncements = () => {
+    const readIds = JSON.parse(localStorage.getItem('read_announcements') || '[]');
+    const data = mockAnnouncements.map(a => ({
+      ...a,
+      is_read: readIds.includes(a.id)
+    }));
+    setAnnouncements(data);
+  };
+
+  useEffect(() => {
+    loadAnnouncements();
+
+    const handleStorageChange = () => {
+      loadAnnouncements();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    const interval = setInterval(loadAnnouncements, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   // 模拟数据 - 实际应该从API获取
   const urgentTodos = [
@@ -186,6 +300,53 @@ const Dashboard: React.FC = () => {
                 )}
               />
             </div>
+
+            {/* 电签权限状态 */}
+            <Divider style={{ margin: '12px 0' }} />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                <SafetyCertificateOutlined style={{ color: '#1890ff', fontSize: 14 }} />
+                <strong style={{ fontSize: 13 }}>电签权限</strong>
+              </div>
+              {(() => {
+                const userInfo = JSON.parse(localStorage.getItem('supplier_userInfo') || '{}');
+                const hasEsign = userInfo?.esign_permission?.enabled && userInfo?.esign_permission?.verified;
+                const isPersonalVerified = userInfo?.personal_verified;
+                if (hasEsign) {
+                  return (
+                    <div style={{ padding: '8px', background: '#f6ffed', borderRadius: '4px', border: '1px solid #b7eb8f' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                        <span style={{ fontSize: 12, color: '#389e0d' }}>已开通</span>
+                        <Button type="link" size="small" style={{ padding: 0, marginLeft: 'auto' }} onClick={() => navigate('/account')}>管理</Button>
+                      </div>
+                    </div>
+                  );
+                }
+                if (isPersonalVerified) {
+                  return (
+                    <div style={{ padding: '8px', background: '#fffbe6', borderRadius: '4px', border: '1px solid #ffe58f' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <ClockCircleOutlined style={{ color: '#faad14' }} />
+                        <span style={{ fontSize: 12, color: '#d48806' }}>等待授权</span>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div style={{ padding: '8px', background: '#fff2f0', borderRadius: '4px', border: '1px solid #ffccc7' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 12, color: '#cf1322' }}>
+                        <ExclamationCircleOutlined style={{ marginRight: 4 }} />未认证
+                      </span>
+                      <Button type="primary" size="small" onClick={() => setPersonalAuthVisible(true)}>
+                        去认证
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </Card>
         </Col>
 
@@ -242,39 +403,51 @@ const Dashboard: React.FC = () => {
           </Row>
         </Col>
 
-        {/* 快捷入口区 */}
+        {/* 公告通知 */}
         <Col xs={24} lg={12}>
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircleOutlined style={{ color: '#1890ff' }} />
-                <span>快捷入口</span>
+                <BellOutlined style={{ color: '#faad14' }} />
+                <span>公告通知</span>
+                <Badge count={announcements.filter(a => !a.is_read).length} />
               </div>
             }
+            extra={<Button type="link" onClick={() => navigate('/announcements')}>查看全部</Button>}
+            style={{ height: '100%' }}
           >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
-              {quickActions.map((action) => (
-                <Button
-                  key={action.key}
-                  type="default"
-                  size="large"
-                  style={{
-                    height: '80px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    border: `2px solid ${action.color}20`,
-                    backgroundColor: `${action.color}05`
-                  }}
-                  onClick={() => handleQuickAction(action)}
-                >
-                  <div style={{ fontSize: '24px', color: action.color }}>{action.icon}</div>
-                  <div style={{ fontSize: '12px', color: '#666', textAlign: 'center' }}>{action.label}</div>
-                </Button>
-              ))}
-            </div>
+            {announcements.length === 0 ? (
+              <Empty description="暂无公告" style={{ padding: '20px 0' }} />
+            ) : (
+              <List
+                size="small"
+                dataSource={announcements.slice(0, 5)}
+                renderItem={(item) => (
+                  <List.Item
+                    style={{
+                      padding: '12px 0',
+                      cursor: 'pointer',
+                      backgroundColor: item.is_read ? 'transparent' : '#f0f9ff'
+                    }}
+                    onClick={() => navigate('/announcements')}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          {item.is_important && <Tag color="red">重要</Tag>}
+                          <Tag color={item.type === 'notice' ? 'blue' : 'green'}>
+                            {item.type === 'notice' ? '通知' : '公告'}
+                          </Tag>
+                          {!item.is_read && <Badge dot />}
+                        </div>
+                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>{item.title}</div>
+                        <div style={{ fontSize: '12px', color: '#999' }}>{item.created_at}</div>
+                      </div>
+                    </div>
+                  </List.Item>
+                )}
+              />
+            )}
           </Card>
         </Col>
 
@@ -283,7 +456,7 @@ const Dashboard: React.FC = () => {
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <BellOutlined style={{ color: '#faad14' }} />
+                <MessageOutlined style={{ color: '#1890ff' }} />
                 <span>消息中心</span>
               </div>
             }
@@ -321,6 +494,17 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      <PersonalAuthModal
+        visible={personalAuthVisible}
+        onCancel={() => setPersonalAuthVisible(false)}
+        onSuccess={() => {
+          setPersonalAuthVisible(false);
+          message.success('认证成功');
+          const userInfo = JSON.parse(localStorage.getItem('supplier_userInfo') || '{}');
+          localStorage.setItem('supplier_userInfo', JSON.stringify({ ...userInfo, personal_verified: true }));
+        }}
+      />
     </div>
   );
 };

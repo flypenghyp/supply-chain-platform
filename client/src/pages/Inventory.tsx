@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import dayjs from 'dayjs';
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter';
 
 const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
@@ -328,50 +329,20 @@ const Inventory: React.FC = () => {
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: 'calc(100vh - 64px)' }}>
       <Card style={{ marginBottom: '24px' }}>
         {/* 筛选条件 */}
-        <Row gutter={16} style={{ marginBottom: '16px' }}>
-          <Col xs={24} sm={8} lg={6}>
-            <Input
-              placeholder="搜索商品名称/编码"
-              value={filters.product}
-              onChange={(e) => handleFilterChange({ ...filters, product: e.target.value })}
-              prefix={<FilterOutlined />}
-            />
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Select
-              placeholder="选择仓库"
-              style={{ width: '100%' }}
-              allowClear
-              value={filters.warehouse}
-              onChange={(value) => handleFilterChange({ ...filters, warehouse: value })}
-            >
-              <Select.Option value="北京中心仓">北京中心仓</Select.Option>
-              <Select.Option value="上海中心仓">上海中心仓</Select.Option>
-              <Select.Option value="广州中心仓">广州中心仓</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Select
-              placeholder="库存状态"
-              style={{ width: '100%' }}
-              allowClear
-              value={filters.status}
-              onChange={(value) => handleFilterChange({ ...filters, status: value })}
-            >
-              <Select.Option value="low">缺货预警</Select.Option>
-              <Select.Option value="normal">正常</Select.Option>
-              <Select.Option value="overstocked">积压预警</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Space>
-              <Button type="primary" icon={<BarChartOutlined />}>导出报表</Button>
-              <Button icon={<SettingOutlined />} onClick={() => setSettingsModalVisible(true)}>
-                预警设置
-              </Button>
-            </Space>
-          </Col>
-        </Row>
+        <AdvancedSearchFilter
+          fields={[
+            { key: 'product', label: '商品名称', type: 'input', placeholder: '请输入商品名称' },
+            { key: 'warehouse', label: '仓库', type: 'input', placeholder: '请输入仓库' },
+            { key: 'status', label: '库存状态', type: 'select', placeholder: '请选择状态',
+              options: [{ label: '正常', value: 'normal' }, { label: '低库存', value: 'low' }, { label: '积压', value: 'overstock' }]
+            }
+          ]}
+          values={filters}
+          onChange={(k, v) => handleFilterChange({ ...filters, [k]: v })}
+          onSearch={() => console.log('search')}
+          onReset={() => setFilters({ product: '', warehouse: '', status: undefined })}
+          extraActions={<Button onClick={() => setSettingsModalVisible(true)} style={{ height: 32 }}>预警设置</Button>}
+        />
 
         {/* 库存概览统计 */}
         <Row gutter={16} style={{ marginBottom: '16px' }}>

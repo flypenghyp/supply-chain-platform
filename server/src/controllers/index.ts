@@ -11,28 +11,44 @@ export async function getSupplierById(id: string) {
 
 export async function createSupplier(data: any) {
   const id = uuidv4();
-  const { name, email, phone, address, city, country } = data;
+  const { name, email, phone, address, city, country, is_super_admin, business_license, super_admin_phone, super_admin_role } = data;
   
   await db.run(
-    `INSERT INTO suppliers (id, name, email, phone, address, city, country) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, name, email, phone, address, city, country]
+    `INSERT INTO suppliers (id, name, email, phone, address, city, country, is_super_admin, business_license, super_admin_phone, super_admin_role) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, name, email, phone, address, city, country, is_super_admin || 0, business_license, super_admin_phone, super_admin_role]
   );
   
   return getSupplierById(id);
 }
 
 export async function updateSupplier(id: string, data: any) {
-  const { name, email, phone, address, city, country, status, rating } = data;
+  const { name, email, phone, address, city, country, status, rating, is_super_admin, business_license, super_admin_phone, super_admin_role } = data;
   
   await db.run(
     `UPDATE suppliers SET name = ?, email = ?, phone = ?, address = ?, city = ?, 
-     country = ?, status = ?, rating = ?, updated_at = CURRENT_TIMESTAMP 
+     country = ?, status = ?, rating = ?, is_super_admin = ?, business_license = ?, super_admin_phone = ?, super_admin_role = ?, updated_at = CURRENT_TIMESTAMP 
      WHERE id = ?`,
-    [name, email, phone, address, city, country, status, rating, id]
+    [name, email, phone, address, city, country, status, rating, is_super_admin, business_license, super_admin_phone, super_admin_role, id]
   );
   
   return getSupplierById(id);
+}
+
+export async function setSuperAdmin(supplierId: string, data: any) {
+  const { is_super_admin, business_license, super_admin_phone, super_admin_role } = data;
+  
+  await db.run(
+    `UPDATE suppliers SET is_super_admin = ?, business_license = ?, super_admin_phone = ?, super_admin_role = ?, updated_at = CURRENT_TIMESTAMP 
+     WHERE id = ?`,
+    [is_super_admin, business_license, super_admin_phone, super_admin_role, supplierId]
+  );
+  
+  return getSupplierById(supplierId);
+}
+
+export async function getSuperAdmins() {
+  return db.all('SELECT * FROM suppliers WHERE is_super_admin = 1 ORDER BY created_at DESC');
 }
 
 export async function deleteSupplier(id: string) {
@@ -196,4 +212,326 @@ export async function getProductCategories() {
     FROM products
     GROUP BY category
   `);
+}
+
+// Supplier Users
+export async function getSupplierUsers(supplierCode: string) {
+  return db.all(
+    'SELECT * FROM supplier_users WHERE supplier_code = ? ORDER BY created_at DESC',
+    [supplierCode]
+  );
+}
+
+export async function getSupplierUserById(id: string) {
+  return db.get('SELECT * FROM supplier_users WHERE id = ?', [id]);
+}
+
+export async function getSupplierUserByPhone(phone: string) {
+  return db.get('SELECT * FROM supplier_users WHERE phone = ?', [phone]);
+}
+
+export async function getSupplierAdmin(supplierCode: string) {
+  return db.get(
+    'SELECT * FROM supplier_users WHERE supplier_code = ? AND role = ?',
+    [supplierCode, 'admin']
+  );
+}
+
+export async function createSupplierUser(data: any) {
+  const id = uuidv4();
+  const {
+    supplier_code,
+    name,
+    phone,
+    email,
+    role,
+    role_name,
+    role_type,
+    status,
+    permissions,
+    data_scope,
+    created_by
+  } = data;
+
+  await db.run(
+    `INSERT INTO supplier_users 
+     (id, supplier_code, name, phone, email, role, role_name, role_type, status, permissions, data_scope, created_by) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      supplier_code,
+      name,
+      phone,
+      email,
+      role,
+      role_name,
+      role_type || 'custom',
+      status || 'active',
+      permissions ? JSON.stringify(permissions) : null,
+      data_scope ? JSON.stringify(data_scope) : null,
+      created_by
+    ]
+  );
+
+  return getSupplierUserById(id);
+}
+
+export async function updateSupplierUser(id: string, data: any) {
+  const {
+    name,
+    phone,
+    email,
+    role,
+    role_name,
+    role_type,
+    status,
+    permissions,
+    data_scope
+  } = data;
+
+  await db.run(
+    `UPDATE supplier_users 
+     SET name = ?, phone = ?, email = ?, role = ?, role_name = ?, role_type = ?, 
+         status = ?, permissions = ?, data_scope = ?, updated_at = CURRENT_TIMESTAMP 
+     WHERE id = ?`,
+    [
+      name,
+      phone,
+      email,
+      role,
+      role_name,
+      role_type,
+      status,
+      permissions ? JSON.stringify(permissions) : null,
+      data_scope ? JSON.stringify(data_scope) : null,
+      id
+    ]
+  );
+
+  return getSupplierUserById(id);
+}
+
+export async function deleteSupplierUser(id: string) {
+  await db.run('DELETE FROM supplier_users WHERE id = ?', [id]);
+  return { success: true };
+}
+
+// Verify Codes
+export async function createVerifyCode(data: any) {
+  const id = uuidv4();
+  const { phone, code, type, supplier_code, expire_time } = data;
+
+  await db.run(
+    `INSERT INTO verify_codes (id, phone, code, type, supplier_code, expire_time) 
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, phone, code, type, supplier_code, expire_time]
+  );
+
+  return { id, phone, code, type, supplier_code, expire_time };
+}
+
+export async function getVerifyCode(phone: string, type: string) {
+  return db.get(
+    `SELECT * FROM verify_codes 
+     WHERE phone = ? AND type = ? AND used = 0 AND expire_time > datetime('now') 
+     ORDER BY created_at DESC LIMIT 1`,
+    [phone, type]
+  );
+}
+
+export async function updateVerifyCode(id: string, data: any) {
+  const { used, used_time, fail_count } = data;
+
+  await db.run(
+    `UPDATE verify_codes SET used = ?, used_time = ?, fail_count = ? WHERE id = ?`,
+    [used, used_time, fail_count, id]
+  );
+
+  return { id };
+}
+
+// Super Admin Change Logs
+export async function createSuperAdminChangeLog(data: any) {
+  const id = uuidv4();
+  const {
+    supplier_code,
+    old_admin_id,
+    old_admin_name,
+    old_admin_phone,
+    new_admin_id,
+    new_admin_name,
+    new_admin_phone,
+    operator_id,
+    operator_name,
+    operation_ip,
+    operation_device,
+    reason,
+    verify_method
+  } = data;
+
+  await db.run(
+    `INSERT INTO super_admin_change_logs 
+     (id, supplier_code, old_admin_id, old_admin_name, old_admin_phone, 
+      new_admin_id, new_admin_name, new_admin_phone, operator_id, operator_name, 
+      operation_ip, operation_device, reason, verify_method) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      supplier_code,
+      old_admin_id,
+      old_admin_name,
+      old_admin_phone,
+      new_admin_id,
+      new_admin_name,
+      new_admin_phone,
+      operator_id,
+      operator_name,
+      operation_ip,
+      operation_device,
+      reason,
+      verify_method || 'sms_code'
+    ]
+  );
+
+  return { id };
+}
+
+export async function getSuperAdminChangeLogs(supplierCode: string) {
+  return db.all(
+    `SELECT * FROM super_admin_change_logs WHERE supplier_code = ? ORDER BY operation_time DESC`,
+    [supplierCode]
+  );
+}
+
+// Esign Info
+export async function getEsignInfo(userId: string) {
+  return db.get('SELECT * FROM supplier_esign_info WHERE user_id = ?', [userId]);
+}
+
+export async function createEsignInfo(data: any) {
+  const id = uuidv4();
+  const {
+    user_id,
+    supplier_code,
+    real_name,
+    phone,
+    id_card,
+    status,
+    verified,
+    verified_at,
+    verified_by,
+    enabled,
+    granted_at,
+    granted_by
+  } = data;
+
+  await db.run(
+    `INSERT INTO supplier_esign_info 
+     (id, user_id, supplier_code, real_name, phone, id_card, status, verified, 
+      verified_at, verified_by, enabled, granted_at, granted_by) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      user_id,
+      supplier_code,
+      real_name,
+      phone,
+      id_card,
+      status || 'pending',
+      verified || 0,
+      verified_at,
+      verified_by,
+      enabled || 0,
+      granted_at,
+      granted_by
+    ]
+  );
+
+  return getEsignInfo(user_id);
+}
+
+export async function updateEsignInfo(userId: string, data: any) {
+  const {
+    real_name,
+    phone,
+    id_card,
+    status,
+    verified,
+    verified_at,
+    verified_by,
+    enabled,
+    granted_at,
+    granted_by,
+    reject_reason
+  } = data;
+
+  await db.run(
+    `UPDATE supplier_esign_info 
+     SET real_name = ?, phone = ?, id_card = ?, status = ?, verified = ?, 
+         verified_at = ?, verified_by = ?, enabled = ?, granted_at = ?, 
+         granted_by = ?, reject_reason = ?, updated_at = CURRENT_TIMESTAMP 
+     WHERE user_id = ?`,
+    [
+      real_name,
+      phone,
+      id_card,
+      status,
+      verified,
+      verified_at,
+      verified_by,
+      enabled,
+      granted_at,
+      granted_by,
+      reject_reason,
+      userId
+    ]
+  );
+
+  return getEsignInfo(userId);
+}
+
+// Esign Logs
+export async function createEsignLog(data: any) {
+  const id = uuidv4();
+  const {
+    user_id,
+    supplier_code,
+    action,
+    action_ip,
+    action_device,
+    result,
+    reason,
+    real_name,
+    phone,
+    id_card
+  } = data;
+
+  await db.run(
+    `INSERT INTO supplier_esign_logs 
+     (id, user_id, supplier_code, action, action_ip, action_device, result, 
+      reason, real_name, phone, id_card) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      user_id,
+      supplier_code,
+      action,
+      action_ip,
+      action_device,
+      result,
+      reason,
+      real_name,
+      phone,
+      id_card
+    ]
+  );
+
+  return { id };
+}
+
+export async function getEsignLogs(userId: string) {
+  return db.all(
+    `SELECT * FROM supplier_esign_logs WHERE user_id = ? ORDER BY action_time DESC`,
+    [userId]
+  );
 }

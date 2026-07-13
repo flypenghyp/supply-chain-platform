@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter';
 import { AppointmentForm, ItemWithBatches, BatchInfo } from '../types/appointment';
 
 const { Title, Text, Paragraph } = Typography;
@@ -949,46 +950,33 @@ const Orders: React.FC = () => {
 
       <Card style={{ marginBottom: '24px' }}>
         {/* 筛选条件 */}
-        <Row gutter={16} style={{ marginBottom: '16px' }}>
-          <Col xs={24} sm={8} lg={4}>
-            <Select
-              placeholder="订单状态"
-              style={{ width: '100%' }}
-              allowClear
-              value={filters.status}
-              onChange={(value) => handleFilterChange({ ...filters, status: value })}
-            >
-              <Select.Option value="pending">待确认</Select.Option>
-              <Select.Option value="confirmed">已确认</Select.Option>
-              <Select.Option value="shipped">配送中</Select.Option>
-              <Select.Option value="completed">已完成</Select.Option>
-              <Select.Option value="cancelled">已取消</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} lg={6}>
-            <RangePicker
-              placeholder={['开始日期', '结束日期']}
-              style={{ width: '100%' }}
-              value={filters.dateRange}
-              onChange={(dates) => handleFilterChange({ ...filters, dateRange: dates })}
-            />
-          </Col>
-          <Col xs={24} sm={8} lg={6}>
-            <Input
-              placeholder="搜索订单号或供应商"
-              value={filters.searchText}
-              onChange={(e) => handleFilterChange({ ...filters, searchText: e.target.value })}
-            />
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Space>
-              <Button type="primary" icon={<FileTextOutlined />} onClick={handleBulkExport}>导出订单</Button>
-              <Button icon={<FileTextOutlined />} onClick={handleBulkConfirm}>批量确认</Button>
-              <Button type="primary" icon={<TruckOutlined />} onClick={handleBatchAppointment}>预约送货</Button>
-              <Button type="primary" icon={<FilePdfOutlined />} onClick={handleBatchBatchEntry}>批量录入批次</Button>
-            </Space>
-          </Col>
-        </Row>
+        <AdvancedSearchFilter
+          fields={[
+            { key: 'status', label: '订单状态', type: 'select', placeholder: '请选择订单状态',
+              options: [
+                { label: '待确认', value: 'pending' },
+                { label: '已确认', value: 'confirmed' },
+                { label: '配送中', value: 'shipped' },
+                { label: '已完成', value: 'completed' },
+                { label: '已取消', value: 'cancelled' }
+              ]
+            },
+            { key: 'dateRange', label: '订单日期', type: 'rangePicker' },
+            { key: 'searchText', label: '搜索关键词', type: 'input', placeholder: '搜索订单号或供应商' }
+          ]}
+          values={filters}
+          onChange={(k, v) => handleFilterChange({ ...filters, [k]: v })}
+          onSearch={handleFilterChange}
+          onReset={() => setFilters({ status: undefined, dateRange: null, searchText: '' })}
+          extraActions={
+            <>
+              <Button type="primary" onClick={handleBulkExport} style={{ height: 32 }}>导出订单</Button>
+              <Button onClick={handleBulkConfirm} style={{ height: 32 }}>批量确认</Button>
+              <Button type="primary" onClick={handleBatchAppointment} style={{ height: 32 }}>预约送货</Button>
+              <Button type="primary" onClick={handleBatchBatchEntry} style={{ height: 32 }}>批量录入批次</Button>
+            </>
+          }
+        />
 
         <Table
           columns={columns}

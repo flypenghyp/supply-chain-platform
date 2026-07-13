@@ -108,4 +108,11 @@ export const analyticsService = {
   getProductCategories: () => api.get('/analytics/categories'),
 };
 
+// Announcements
+export const announcementService = {
+  getAll: () => api.get('/announcements'),
+  getById: (id: string) => api.get(`/announcements/${id}`),
+  markAsRead: (id: string) => api.post(`/announcements/${id}/read`),
+};
+
 export default api;

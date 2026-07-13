@@ -62,3 +62,33 @@ logs/
 *.pid
 *.seed
 *.pid.lock
+
+# === 供应链项目特定排除规则 ===
+
+# 静态构建输出目录
+1/
+2/
+3/
+4/
+1文档/
+
+# 独立 HTML 构建产物
+client/index-dist.html
+client/index-single.html
+
+# 压缩包
+*.zip
+
+# 临时解压目录
+*_contents/
+*_temp/
+
+# IDE 本地配置
+.trae/
+.codebuddy/
+
+# 辅助工具脚本（非项目源码）
+screenshot-client*.js
+generate-prd-docx.js
+scripts/
+retail-admin/debug-page.mjs

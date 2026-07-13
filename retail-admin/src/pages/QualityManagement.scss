@@ -1,0 +1,65 @@
+.quality-management-page {
+  padding: 24px;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 64px);
+
+  .qm-stats {
+    margin-bottom: 24px;
+  }
+
+  .qm-notice-no {
+    font-weight: bold;
+    color: #1890ff;
+  }
+
+  .qm-sub-text {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .qm-danger-text {
+    color: #f5222d;
+  }
+
+  .qm-success-text {
+    color: #52c41a;
+  }
+
+  .qm-warning-text {
+    color: #faad14;
+  }
+
+  .qm-warning-block {
+    margin-top: 8px;
+    background-color: #fffbe6;
+    padding: 12px;
+    border-radius: 4px;
+  }
+
+  .qm-card {
+    margin-bottom: 16px;
+  }
+
+  .qm-violation-card {
+    border: 2px solid #f5222d;
+  }
+
+  .qm-audit-card {
+    border: 1px solid #52c41a;
+  }
+
+  .qm-item-row {
+    margin-bottom: 12px;
+  }
+
+  .qm-disagree-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+
+  .qm-disagree-desc {
+    margin-bottom: 0;
+  }
+}

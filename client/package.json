@@ -6,23 +6,27 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:standalone": "vite build --base ./ --outDir ../1/client",
+    "build:static": "vite build --base ./ --outDir ../../../supplychain/1/client --emptyOutDir",
+    "build:doc": "vite build --base ./ --outDir ../1文档/client --emptyOutDir",
     "start": "vite preview"
   },
   "dependencies": {
-    "@ant-design/icons": "^5.2.0",
-    "antd": "^5.8.0",
+    "@ant-design/icons": "^5.6.1",
+    "@ant-design/icons-svg": "^4.4.2",
+    "antd": "^5.29.3",
     "axios": "^1.5.0",
     "dayjs": "^1.11.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.15.0",
-    "recharts": "^2.8.0",
-    "supply-chain-platform": "file:.."
+    "recharts": "^2.8.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.0.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "sass": "^1.99.0",
     "typescript": "^5.1.0",
     "vite": "^4.4.9"
   }

@@ -15,6 +15,7 @@ import {
   AreaChart, Area, ScatterChart, Scatter
 } from 'recharts';
 import dayjs from 'dayjs';
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter';
 
 const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
@@ -312,58 +313,18 @@ const Sales: React.FC = () => {
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: 'calc(100vh - 64px)' }}>
       <Card style={{ marginBottom: '24px' }}>
         {/* 筛选条件 */}
-        <Row gutter={16} style={{ marginBottom: '16px' }}>
-          <Col xs={24} sm={8} lg={6}>
-            <RangePicker
-              placeholder={['开始日期', '结束日期']}
-              style={{ width: '100%' }}
-              value={filters.dateRange}
-              onChange={(dates) => handleFilterChange({ ...filters, dateRange: dates })}
-            />
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Input
-              placeholder="搜索商品"
-              value={filters.product}
-              onChange={(e) => handleFilterChange({ ...filters, product: e.target.value })}
-              prefix={<FilterOutlined />}
-            />
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Select
-              placeholder="选择门店"
-              style={{ width: '100%' }}
-              allowClear
-              value={filters.store}
-              onChange={(value) => handleFilterChange({ ...filters, store: value })}
-            >
-              <Select.Option value="北京万达店">北京万达店</Select.Option>
-              <Select.Option value="上海虹桥店">上海虹桥店</Select.Option>
-              <Select.Option value="广州天河店">广州天河店</Select.Option>
-              <Select.Option value="深圳福田店">深圳福田店</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} lg={4}>
-            <Select
-              placeholder="选择地区"
-              style={{ width: '100%' }}
-              allowClear
-              value={filters.region}
-              onChange={(value) => handleFilterChange({ ...filters, region: value })}
-            >
-              <Select.Option value="北京">北京</Select.Option>
-              <Select.Option value="上海">上海</Select.Option>
-              <Select.Option value="广州">广州</Select.Option>
-              <Select.Option value="深圳">深圳</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} lg={6}>
-            <Space>
-              <Button type="primary" icon={<DownloadOutlined />}>导出报表</Button>
-              <Button icon={<BarChartOutlined />}>生成图表</Button>
-            </Space>
-          </Col>
-        </Row>
+        <AdvancedSearchFilter
+          fields={[
+            { key: 'dateRange', label: '日期范围', type: 'rangePicker' },
+            { key: 'product', label: '商品', type: 'input', placeholder: '请输入商品名称' },
+            { key: 'store', label: '门店', type: 'input', placeholder: '请输入门店' },
+            { key: 'region', label: '区域', type: 'input', placeholder: '请输入区域' }
+          ]}
+          values={filters}
+          onChange={(k, v) => handleFilterChange({ ...filters, [k]: v })}
+          onSearch={() => console.log('search')}
+          onReset={() => setFilters({ dateRange: null, product: '', store: '', region: '' })}
+        />
 
         {/* 销售概览统计 */}
         <Row gutter={16} style={{ marginBottom: '24px' }}>

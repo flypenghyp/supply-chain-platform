@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Form,
@@ -14,17 +14,14 @@ import {
   Button,
   Space,
   Typography,
-  Divider,
   message,
-  Popconfirm
+  Result
 } from 'antd';
 import {
   ThunderboltOutlined,
   CalculatorOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined,
-  EditOutlined,
-  ClearOutlined
+  SignatureOutlined
 } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -37,11 +34,12 @@ import {
   generateBatchAgreementContent
 } from '../utils/early-settlement-calc';
 import type { EarlySettlementCalculation } from '../types/early-settlement';
+import { ESIGN_CONFIG } from '../config/esign';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 interface EarlySettlementModalProps {
-  visible: boolean;
+  open: boolean;
   onCancel: () => void;
   onSubmit: (values: any) => void;
   settlementData: {
@@ -57,7 +55,7 @@ interface EarlySettlementModalProps {
 }
 
 const EarlySettlementModal: React.FC<EarlySettlementModalProps> = ({
-  visible,
+  open,
   onCancel,
   onSubmit,
   settlementData,
@@ -69,19 +67,15 @@ const EarlySettlementModal: React.FC<EarlySettlementModalProps> = ({
   const [calculation, setCalculation] = useState<EarlySettlementCalculation | null>(null);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [agreementContent, setAgreementContent] = useState('');
-  const [signature, setSignature] = useState<string>('');
-  const [signatureRequired, setSignatureRequired] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  const [signFlowId, setSignFlowId] = useState<string>('');
 
   // 初始化
   useEffect(() => {
-    if (visible && settlementData && settlementData.id) {
+    if (open && settlementData && settlementData.id) {
       initializeForm();
-      setSignature('');
-      setSignatureRequired(false);
+      setSignFlowId('');
     }
-  }, [visible, settlementData]);
+  }, [open, settlementData]);
 
   const initializeForm = () => {
     const defaultDate = getDefaultExpectedPayDate();
@@ -151,62 +145,6 @@ const EarlySettlementModal: React.FC<EarlySettlementModalProps> = ({
     }
   };
 
-  // 签名相关函数
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    setIsDrawing(true);
-  };
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setSignature('');
-    setSignatureRequired(false);
-  };
-
-  const saveSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const dataUrl = canvas.toDataURL('image/png');
-    setSignature(dataUrl);
-    setSignatureRequired(false);
-    message.success('签名已保存');
-  };
-
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -221,10 +159,9 @@ const EarlySettlementModal: React.FC<EarlySettlementModalProps> = ({
         return;
       }
 
-      // 检查是否已签名
-      if (!signature) {
-        setSignatureRequired(true);
-        message.warning('请先签署协议');
+      // 检查是否已完成电签
+      if (!signFlowId) {
+        message.warning('请先完成协议电签');
         return;
       }
 
@@ -234,7 +171,7 @@ const EarlySettlementModal: React.FC<EarlySettlementModalProps> = ({
         calculation,
         agreementContent,
         agreementAccepted,
-        signature, // 电子签名
+        signFlowId, // 电签流程ID
         signedAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
       };
       
@@ -256,7 +193,7 @@ const EarlySettlementModal: React.FC<EarlySettlementModalProps> = ({
           <span>{isBatch ? `批量提前结算申请 (${batchCount}个结算单)` : '提前结算申请'}</span>
         </div>
       }
-      open={visible}
+      open={open}
       onCancel={onCancel}
       width={900}
       footer={null}
@@ -469,86 +406,77 @@ const EarlySettlementModal: React.FC<EarlySettlementModalProps> = ({
           </Form.Item>
         </Card>
 
-        {/* 电子签章区域 */}
+        {/* 电签签署区 — 替代原 Canvas 手写签名 */}
         {agreementAccepted && (
           <Card
             size="small"
             title={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text strong>电子签名</Text>
-                {signature && (
-                  <Tag color="success">已签署</Tag>
+                <Text strong>电子签署</Text>
+                {signFlowId && (
+                  <span style={{ color: '#52c41a' }}>已签署</span>
                 )}
               </div>
             }
-            style={{ marginBottom: '16px', border: signatureRequired ? '2px solid #f5222d' : '1px solid #d9d9d9' }}
+            style={{ marginBottom: '16px', border: '1px solid #d9d9d9' }}
           >
-            {!signature ? (
-              <>
-                <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                  <Text type="secondary">请在下方的签名区域手写签名</Text>
-                </div>
-                <div style={{
-                  border: '2px solid #1890ff',
-                  borderRadius: '4px',
-                  backgroundColor: '#f0f9ff',
-                  padding: '10px',
-                  display: 'flex',
-                  justifyContent: 'center'
-                }}>
-                  <canvas
-                    ref={canvasRef}
-                    width={600}
-                    height={150}
-                    style={{
-                      border: '1px solid #d9d9d9',
-                      backgroundColor: '#fff',
-                      cursor: 'crosshair',
-                      display: 'block'
-                    }}
-                    onMouseDown={startDrawing}
-                    onMouseMove={draw}
-                    onMouseUp={stopDrawing}
-                    onMouseLeave={stopDrawing}
-                  />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                  <Space>
-                    <Button onClick={clearSignature} icon={<ClearOutlined />}>
-                      清除签名
-                    </Button>
-                    <Button type="primary" onClick={saveSignature} icon={<CheckCircleOutlined />}>
-                      确认签名
-                    </Button>
-                  </Space>
-                </div>
-              </>
-            ) : (
-              <div style={{ textAlign: 'center' }}>
-                <img 
-                  src={signature} 
-                  alt="电子签名" 
-                  style={{ 
-                    maxWidth: '400px', 
-                    height: '80px', 
-                    border: '2px solid #52c41a',
-                    borderRadius: '4px',
-                    padding: '10px',
-                    backgroundColor: '#f6ffed'
-                  }} 
-                />
-                <div style={{ marginTop: '12px' }}>
-                  <Text type="success">✓ 签名已确认</Text>
-                </div>
-                <Button 
-                  type="link" 
-                  onClick={clearSignature}
-                  style={{ marginTop: '8px' }}
+            {/* 电签签署区 — 替代原 Canvas 手写签名 */}
+            <div style={{ textAlign: 'center', padding: '32px 0', borderTop: '1px solid #f0f0f0', marginTop: '16px' }}>
+              <Alert
+                message="电子签署"
+                description="点击下方按钮跳转到电签平台完成《提前结算补充协议》的在线签署"
+                type="info"
+                showIcon
+                style={{ marginBottom: '16px', textAlign: 'left' }}
+              />
+
+              {!signFlowId ? (
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<SignatureOutlined />}
+                  disabled={!agreementAccepted}
+                  onClick={() => {
+                    const signData = {
+                      business_type: 'early_settlement',
+                      application_id: settlementData?.id,
+                      supplier_name: settlementData?.supplier_name,
+                      amount: settlementData?.payable_amount,
+                    };
+                    window.open(`${ESIGN_CONFIG.PLATFORM_URL}?data=${encodeURIComponent(JSON.stringify(signData))}`, '_blank');
+                    message.success('已跳转到电签平台，签署完成后请返回确认');
+                  }}
                 >
-                  重新签名
+                  前往电签平台签署协议
                 </Button>
-              </div>
-            )}
+              ) : (
+                <Result
+                  status="success"
+                  title="协议已签署"
+                  subTitle={`签署时间：${new Date().toLocaleString()}`}
+                  extra={
+                    <Button onClick={() => setSignFlowId('')}>重新签署</Button>
+                  }
+                />
+              )}
+
+              {!agreementAccepted && (
+                <div style={{ color: '#faad14', marginTop: '12px', fontSize: 13 }}>请先阅读并同意上方协议</div>
+              )}
+
+              {/* 用户从外部回来后的手动确认入口 */}
+              {!signFlowId && agreementAccepted && (
+                <div style={{ marginTop: '12px' }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>已在电签平台完成签署？</Text>
+                  <Button type="link" size="small" onClick={() => {
+                    setSignFlowId(`FLOW-${Date.now()}`);
+                    message.success('已确认签署完成，可以提交申请了');
+                  }}>
+                    点击此处确认
+                  </Button>
+                </div>
+              )}
+            </div>
           </Card>
         )}
       </Form>
@@ -562,7 +490,7 @@ const EarlySettlementModal: React.FC<EarlySettlementModalProps> = ({
           <Button
             type="primary"
             onClick={handleSubmit}
-            disabled={!agreementAccepted || !calculation || !signature}
+            disabled={!agreementAccepted || !calculation || !signFlowId}
             loading={loading}
             icon={<CheckCircleOutlined />}
           >

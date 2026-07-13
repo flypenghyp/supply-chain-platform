@@ -15,6 +15,9 @@ import {
   Divider,
   Typography,
   Input,
+  Row,
+  Col,
+  Select,
 } from 'antd'
 import {
   EyeOutlined,
@@ -24,9 +27,12 @@ import {
   EnvironmentOutlined,
   ShopOutlined,
   TruckOutlined,
+  SearchOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
 import { usePermission } from '@/contexts/PermissionContext'
 import type { Shipment, ShipmentItem } from '@/types'
+import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
 
 const { Title, Text } = Typography
 
@@ -41,6 +47,7 @@ interface ShipmentItemExt {
 
 const ShipmentManagement = () => {
   const [shipments, setShipments] = useState<Shipment[]>([])
+  const [filteredShipments, setFilteredShipments] = useState<Shipment[]>([])
   const [loading, setLoading] = useState(false)
   const [detailVisible, setDetailVisible] = useState(false)
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
@@ -48,6 +55,12 @@ const ShipmentManagement = () => {
   const [hideDrawerVisible, setHideDrawerVisible] = useState(false)
   const [hideReason, setHideReason] = useState('')
   const [currentHideShipment, setCurrentHideShipment] = useState<Shipment | null>(null)
+  const [filters, setFilters] = useState({
+    shipmentNo: '',
+    orderNo: '',
+    supplierName: '',
+    status: ''
+  })
 
   const { canHide, getManagedCategories } = usePermission()
   const categories = getManagedCategories()
@@ -112,7 +125,46 @@ const ShipmentManagement = () => {
       },
     ]
     setShipments(mockShipments)
+    setFilteredShipments(mockShipments)
     setLoading(false)
+  }
+
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters)
+  }
+
+  const handleSearch = () => {
+    let filtered = [...shipments]
+    
+    if (filters.shipmentNo) {
+      filtered = filtered.filter(item => item.shipmentNo.toLowerCase().includes(filters.shipmentNo.toLowerCase()))
+    }
+    
+    if (filters.orderNo) {
+      filtered = filtered.filter(item => item.orderNo.toLowerCase().includes(filters.orderNo.toLowerCase()))
+    }
+    
+    if (filters.supplierName) {
+      filtered = filtered.filter(item => item.supplierName.toLowerCase().includes(filters.supplierName.toLowerCase()))
+    }
+    
+    if (filters.status) {
+      filtered = filtered.filter(item => item.status === filters.status)
+    }
+    
+    setFilteredShipments(filtered)
+    message.success('查询成功')
+  }
+
+  const handleReset = () => {
+    setFilters({
+      shipmentNo: '',
+      orderNo: '',
+      supplierName: '',
+      status: ''
+    })
+    setFilteredShipments(shipments)
+    message.success('已重置查询条件')
   }
 
   const handleViewDetail = (record: Shipment) => {
@@ -168,7 +220,7 @@ const ShipmentManagement = () => {
     return texts[status] || status
   }
 
-  const filteredShipments = shipments.filter(s => {
+  const displayedShipments = filteredShipments.filter(s => {
     if (activeTab === 'all') return true
     return s.status === activeTab
   })
@@ -229,10 +281,25 @@ const ShipmentManagement = () => {
         { key: 'completed', label: '已完成' },
       ]} />
 
+      <AdvancedSearchFilter
+        fields={[
+          { key: 'shipmentNo', label: '发货单号', type: 'input', placeholder: '请输入发货单号' },
+          { key: 'orderNo', label: '订单号', type: 'input', placeholder: '请输入订单号' },
+          { key: 'supplierName', label: '供应商名称', type: 'input', placeholder: '请输入供应商名称' },
+          { key: 'status', label: '发货状态', type: 'select', placeholder: '请选择',
+            options: [{ label: '待发货', value: 'pending' }, { label: '运输中', value: 'in_transit' }, { label: '已送达', value: 'delivered' }, { label: '已完成', value: 'completed' }]
+          }
+        ]}
+        values={filters}
+        onChange={(k, v) => handleFilterChange({ ...filters, [k]: v })}
+        onSearch={() => handleSearch()}
+        onReset={() => handleReset()}
+      />
+
       <Table
         rowKey="id"
         columns={columns}
-        dataSource={filteredShipments}
+        dataSource={displayedShipments}
         loading={loading}
         pagination={{ pageSize: 10, showTotal: (total) => `共 ${total} 条` }}
       />
