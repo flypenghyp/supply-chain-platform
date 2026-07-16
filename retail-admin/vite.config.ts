@@ -5,6 +5,7 @@ import { fileURLToPath, URL } from 'node:url'
 export default defineConfig({
   base: './',
   root: fileURLToPath(new URL('.', import.meta.url)),
+  appType: 'spa',
   plugins: [react()],
   resolve: {
     alias: {

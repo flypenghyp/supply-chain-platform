@@ -24,6 +24,8 @@ import {
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { retailLeaseCounterPayableAnnotations } from './annotations/retail-lease-counter-payable'
 
 const { Text } = Typography
 const { Option } = Select
@@ -348,6 +350,7 @@ const RetailLeaseCounterPayable: React.FC = () => {
   ]
 
   return (
+    <ProductAnnotation config={retailLeaseCounterPayableAnnotations}>
     <div>
       <Card style={{ marginBottom: 16 }}>
         <div
@@ -531,6 +534,7 @@ const RetailLeaseCounterPayable: React.FC = () => {
         )}
       </Drawer>
     </div>
+    </ProductAnnotation>
   )
 }
 

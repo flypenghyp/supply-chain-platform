@@ -27,6 +27,8 @@ import {
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { retailSelfOperatedPayableAnnotations } from './annotations/retail-self-operated-payable'
 
 const { Text } = Typography
 const { Option } = Select
@@ -310,6 +312,7 @@ const RetailSelfOperatedPayable: React.FC = () => {
   ]
 
   return (
+    <ProductAnnotation config={retailSelfOperatedPayableAnnotations}>
     <div>
       <Card style={{ marginBottom: 16 }}>
         <div
@@ -487,6 +490,7 @@ const RetailSelfOperatedPayable: React.FC = () => {
         )}
       </Drawer>
     </div>
+    </ProductAnnotation>
   )
 }
 

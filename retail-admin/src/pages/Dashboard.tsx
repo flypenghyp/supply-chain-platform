@@ -15,6 +15,8 @@ import {
   RightOutlined,
 } from '@ant-design/icons'
 import { usePermission } from '@/contexts/PermissionContext'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { dashboardAnnotations } from './annotations/dashboard'
 
 const Dashboard = () => {
   const navigate = useNavigate()
@@ -76,7 +78,8 @@ const Dashboard = () => {
   }
 
   return (
-    <div>
+    <ProductAnnotation config={dashboardAnnotations}>
+    <div data-annotation-id="stat-overview">
       <Row gutter={16}>
         <Col xs={24} sm={8}>
           <Card bordered={false}>
@@ -297,6 +300,7 @@ const Dashboard = () => {
         </Col>
       </Row>
     </div>
+    </ProductAnnotation>
   )
 }
 

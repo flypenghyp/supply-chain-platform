@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Layout, Menu, Breadcrumb, Affix, Button, Avatar, Dropdown, Input, Typography, Modal, Radio, Space, message } from 'antd';
 
 const { Title } = Typography;
@@ -25,7 +25,7 @@ import {
   SwapOutlined,
   TeamOutlined
 } from '@ant-design/icons';
-import { HashRouter, MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, MemoryRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 const isFileProtocol = typeof window !== 'undefined' && window.location?.protocol === 'file:';
 // file:// 用 MemoryRouter 避免 HashRouter 在静态文件下的报错
@@ -52,7 +52,13 @@ import ProductManagement from './pages/ProductManagement';
 import Contracts from './pages/Contracts';
 import Announcements from './pages/Announcements';
 import SettlementApplication from './pages/SettlementApplication';
+import Promotions from './pages/Promotions';
+import PriceAdjustments from './pages/PriceAdjustments';
+import LeaseCounterPayable from './pages/LeaseCounterPayable';
+import SelfOperatedPayable from './pages/SelfOperatedPayable';
 import ApiResult from './pages/ApiResult';
+import AnnotationFloatButton from './components/AnnotationFloatButton/AnnotationFloatButton';
+import AnnotatedRoute from './components/AnnotatedRoute';
 import './styles/App.css';
 
 const { Header, Sider, Content, Footer } = Layout;
@@ -92,14 +98,31 @@ const App: React.FC = () => {
     setIsLoggedIn(!!localStorage.getItem('supplier_token'));
   }, []);
 
+  // 当前用户是否为超管（读 supplier_userInfo.supplier_roles）
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const refreshIsAdmin = useCallback(() => {
+    try {
+      const raw = localStorage.getItem('supplier_userInfo');
+      if (!raw) { setIsAdmin(false); return; }
+      const info = JSON.parse(raw);
+      const ok = !!info?.supplier_roles?.some((sr: any) => Array.isArray(sr.roles) && sr.roles.includes('admin'));
+      setIsAdmin(ok);
+    } catch { setIsAdmin(false); }
+  }, []);
+  useEffect(() => {
+    refreshIsAdmin();
+  }, [isLoggedIn, location.pathname, refreshIsAdmin]);
+
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
+    refreshIsAdmin();
   };
 
   const handleLogout = () => {
     localStorage.removeItem('supplier_token');
     localStorage.removeItem('supplier_phone');
     setIsLoggedIn(false);
+    setIsAdmin(false);
   };
 
   const handleOpenSupplierModal = () => {
@@ -189,7 +212,7 @@ const App: React.FC = () => {
       items: [
         { key: '/account/company', icon: <UserOutlined />, label: '企业信息管理' },
         { key: '/account/certificates', icon: <SafetyOutlined />, label: '供应商资质证照' },
-        { key: '/account/users', icon: <TeamOutlined />, label: '人员管理' },
+        ...(isAdmin ? [{ key: '/account/users', icon: <TeamOutlined />, label: '人员管理' }] : []),
       ],
     },
   };
@@ -349,32 +372,36 @@ const App: React.FC = () => {
 
         <Content style={{ background: '#f0f2f5', overflow: 'initial' }}>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/suppliers" element={<Suppliers />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/shipments" element={<Shipments />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/sales" element={<Sales />} />
-            <Route path="/bid-management" element={<BidManagement />} />
-            <Route path="/price-management" element={<PriceManagement />} />
-            <Route path="/quality" element={<Quality />} />
-            <Route path="/reconciliation" element={<Reconciliation />} />
-            <Route path="/invoices" element={<Invoices />} />
-            <Route path="/payments" element={<Payments />} />
-            <Route path="/fees" element={<Fees />} />
-            <Route path="/finance" element={<Finance />} />
-            <Route path="/account" element={<Account />} />
-            <Route path="/account/company" element={<Account />} />
-            <Route path="/account/certificates" element={<Account />} />
-            <Route path="/account/users" element={<Account />} />
-            <Route path="/service" element={<Service />} />
-            <Route path="/product-management" element={<ProductManagement />} />
-            <Route path="/contracts" element={<Contracts />} />
-            <Route path="/announcements" element={<Announcements />} />
-            <Route path="/settlement-application" element={<SettlementApplication />} />
-            <Route path="/api-result/success" element={<ApiResult />} />
-            <Route path="/api-result/error" element={<ApiResult />} />
+            <Route path="/" element={<AnnotatedRoute pageKey="/"><Dashboard /></AnnotatedRoute>} />
+            <Route path="/suppliers" element={<AnnotatedRoute pageKey="/suppliers"><Suppliers /></AnnotatedRoute>} />
+            <Route path="/products" element={<AnnotatedRoute pageKey="/products"><Products /></AnnotatedRoute>} />
+            <Route path="/orders" element={<AnnotatedRoute pageKey="/orders"><Orders /></AnnotatedRoute>} />
+            <Route path="/shipments" element={<AnnotatedRoute pageKey="/shipments"><Shipments /></AnnotatedRoute>} />
+            <Route path="/inventory" element={<AnnotatedRoute pageKey="/inventory"><Inventory /></AnnotatedRoute>} />
+            <Route path="/sales" element={<AnnotatedRoute pageKey="/sales"><Sales /></AnnotatedRoute>} />
+            <Route path="/bid-management" element={<AnnotatedRoute pageKey="/bid-management"><BidManagement /></AnnotatedRoute>} />
+            <Route path="/price-management" element={<AnnotatedRoute pageKey="/price-management"><PriceManagement /></AnnotatedRoute>} />
+            <Route path="/quality" element={<AnnotatedRoute pageKey="/quality"><Quality /></AnnotatedRoute>} />
+            <Route path="/reconciliation" element={<AnnotatedRoute pageKey="/reconciliation"><Reconciliation /></AnnotatedRoute>} />
+            <Route path="/invoices" element={<AnnotatedRoute pageKey="/invoices"><Invoices /></AnnotatedRoute>} />
+            <Route path="/payments" element={<AnnotatedRoute pageKey="/payments"><Payments /></AnnotatedRoute>} />
+            <Route path="/fees" element={<AnnotatedRoute pageKey="/fees"><Fees /></AnnotatedRoute>} />
+            <Route path="/finance" element={<AnnotatedRoute pageKey="/finance"><Finance /></AnnotatedRoute>} />
+            <Route path="/account" element={<AnnotatedRoute pageKey="/account"><Account /></AnnotatedRoute>} />
+            <Route path="/account/company" element={<AnnotatedRoute pageKey="/account/company"><Account /></AnnotatedRoute>} />
+            <Route path="/account/certificates" element={<AnnotatedRoute pageKey="/account/certificates"><Account /></AnnotatedRoute>} />
+            <Route path="/account/users" element={<AnnotatedRoute pageKey="/account/users"><Account /></AnnotatedRoute>} />
+            <Route path="/service" element={<AnnotatedRoute pageKey="/service"><Service /></AnnotatedRoute>} />
+            <Route path="/product-management" element={<AnnotatedRoute pageKey="/product-management"><ProductManagement /></AnnotatedRoute>} />
+            <Route path="/contracts" element={<AnnotatedRoute pageKey="/contracts"><Contracts /></AnnotatedRoute>} />
+            <Route path="/announcements" element={<AnnotatedRoute pageKey="/announcements"><Announcements /></AnnotatedRoute>} />
+            <Route path="/settlement-application" element={<AnnotatedRoute pageKey="/settlement-application"><SettlementApplication /></AnnotatedRoute>} />
+            <Route path="/promotions" element={<AnnotatedRoute pageKey="/promotions"><Promotions /></AnnotatedRoute>} />
+            <Route path="/price-adjustments" element={<AnnotatedRoute pageKey="/price-adjustments"><PriceAdjustments /></AnnotatedRoute>} />
+            <Route path="/lease-counter-payable" element={<AnnotatedRoute pageKey="/lease-counter-payable"><LeaseCounterPayable /></AnnotatedRoute>} />
+            <Route path="/self-operated-payable" element={<AnnotatedRoute pageKey="/self-operated-payable"><SelfOperatedPayable /></AnnotatedRoute>} />
+            <Route path="/api-result/success" element={<AnnotatedRoute pageKey="/api-result/success"><ApiResult /></AnnotatedRoute>} />
+            <Route path="/api-result/error" element={<AnnotatedRoute pageKey="/api-result/error"><ApiResult /></AnnotatedRoute>} />
           </Routes>
         </Content>
 
@@ -382,6 +409,9 @@ const App: React.FC = () => {
           Supply Chain Collaboration Platform © 2024
         </Footer>
       </Layout>
+
+      {/* 产品标注浮动入口（仅登录后显示） */}
+      {isLoggedIn && <AnnotationFloatButton />}
 
       {/* 切换供应商弹窗 */}
       <Modal

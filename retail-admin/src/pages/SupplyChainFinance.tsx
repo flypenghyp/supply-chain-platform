@@ -25,6 +25,8 @@ import {
   ClockCircleOutlined,
 } from '@ant-design/icons'
 import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { supplyChainFinanceAnnotations } from './annotations/supply-chain-finance'
 import type { ColumnsType } from 'antd/es/table'
 
 const { Title, Text } = Typography
@@ -175,6 +177,7 @@ const SupplyChainFinance = () => {
   }
 
   return (
+    <ProductAnnotation config={supplyChainFinanceAnnotations}>
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5' }}>
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}>
@@ -292,6 +295,7 @@ const SupplyChainFinance = () => {
         )}
       </Drawer>
     </div>
+    </ProductAnnotation>
   )
 }
 

@@ -4,6 +4,8 @@ import { ShopOutlined, UserOutlined, LockOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { login } from '@/services/auth'
 import { usePermission } from '@/contexts/PermissionContext'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { loginAnnotations } from './annotations/login'
 
 const { Title, Text } = Typography
 
@@ -34,6 +36,7 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
   }
 
   return (
+    <ProductAnnotation config={loginAnnotations}>
     <div style={{
       height: '100vh',
       display: 'flex',
@@ -93,6 +96,7 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
         </div>
       </Card>
     </div>
+    </ProductAnnotation>
   )
 }
 

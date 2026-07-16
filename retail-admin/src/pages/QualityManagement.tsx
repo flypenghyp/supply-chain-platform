@@ -490,6 +490,7 @@ const QualityManagement: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 120,
+      onCell: () => ({ 'data-annotation-id': 'col-status' } as any),
       render: (status: string) => <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
     },
     {
@@ -516,13 +517,14 @@ const QualityManagement: React.FC = () => {
       key: 'actions',
       width: 140,
       fixed: 'right' as const,
+      onCell: () => ({ 'data-annotation-id': 'col-action' } as any),
       render: (_: unknown, record: QualityIssue) => (
         <Space size="small">
-          <Button type="text" icon={<EyeOutlined />} size="small" onClick={() => handleViewDetail(record)}>
+          <Button type="text" icon={<EyeOutlined />} size="small" data-annotation-id="btn-view" onClick={() => handleViewDetail(record)}>
             查看
           </Button>
           {(record.status === 'processing' || record.status === 'rejected') && (
-            <Button type="primary" icon={<EditOutlined />} size="small" onClick={() => handleOpenAudit(record)}>
+            <Button type="primary" icon={<EditOutlined />} size="small" data-annotation-id="btn-audit" onClick={() => handleOpenAudit(record)}>
               审核
             </Button>
           )}
@@ -646,6 +648,7 @@ const QualityManagement: React.FC = () => {
   );
 
   return (
+    <ProductAnnotation config={qualityManagementAnnotations}>
     <div className="quality-management-page">
       <Card>
         <Alert
@@ -657,6 +660,7 @@ const QualityManagement: React.FC = () => {
         />
 
         <AdvancedSearchFilter
+          data-annotation-id="search-filter"
           fields={[
             {
               key: 'supplierName',
@@ -703,7 +707,7 @@ const QualityManagement: React.FC = () => {
           onSearch={() => message.success('筛选已应用')}
           onReset={() => setFilters({ supplierName: '', problemType: '', severity: '', status: '' })}
           extraActions={
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateDrawerVisible(true)}>
+            <Button type="primary" icon={<PlusOutlined />} data-annotation-id="btn-create" onClick={() => setCreateDrawerVisible(true)}>
               发起质量问题单
             </Button>
           }
@@ -757,6 +761,7 @@ const QualityManagement: React.FC = () => {
         </Row>
 
         <Table
+          data-annotation-id="quality-table"
           columns={columns}
           dataSource={filteredData}
           loading={loading}
@@ -772,6 +777,7 @@ const QualityManagement: React.FC = () => {
 
       {/* 新建抽屉 */}
       <Drawer
+        data-annotation-id="drawer-create"
         title="发起质量问题单"
         placement="right"
         onClose={() => {
@@ -1181,6 +1187,7 @@ const QualityManagement: React.FC = () => {
 
       {/* 修改并重发抽屉 */}
       <Drawer
+        data-annotation-id="drawer-edit"
         title={`修改问题单并重新推送 - ${formatNoticeNo(selectedRecord)}`}
         placement="right"
         onClose={() => {
@@ -1379,6 +1386,7 @@ const QualityManagement: React.FC = () => {
 
       {/* 关闭单据二次确认 */}
       <Modal
+        data-annotation-id="modal-close"
         title="关闭单据"
         open={closeModalVisible}
         onCancel={() => setCloseModalVisible(false)}
@@ -1389,6 +1397,7 @@ const QualityManagement: React.FC = () => {
         <p>关闭后该质量问题单将结束流程，供应商端将同步显示“已关闭”状态，是否确认？</p>
       </Modal>
     </div>
+    </ProductAnnotation>
   );
 };
 

@@ -20,6 +20,7 @@ import type { MenuProps } from 'antd'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { usePermission } from '@/contexts/PermissionContext'
 import { useState } from 'react'
+import AnnotationFloatButton from '@/components/AnnotationFloatButton/AnnotationFloatButton'
 import './MainLayout.scss'
 
 const { Header, Sider, Content } = Layout
@@ -200,6 +201,7 @@ const MainLayout = ({ children, onLogout }: MainLayoutProps) => {
           {children}
         </Content>
       </Layout>
+      <AnnotationFloatButton />
     </Layout>
   )
 }

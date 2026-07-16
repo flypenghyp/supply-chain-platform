@@ -35,6 +35,8 @@ import dayjs from 'dayjs'
 import { usePermission } from '@/contexts/PermissionContext'
 import type { Order, OrderItem } from '@/types'
 import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { orderManagementAnnotations } from './annotations/order-management'
 
 const { RangePicker } = DatePicker
 const { Title, Text } = Typography
@@ -239,7 +241,7 @@ const OrderManagement = () => {
       ),
     },
     { title: '供应商', dataIndex: 'supplierName', key: 'supplierName' },
-    { title: '品类', dataIndex: 'categoryName', key: 'categoryName', render: (text: string) => <Tag color="blue">{text}</Tag> },
+    { title: '品类', dataIndex: 'categoryName', key: 'categoryName', onCell: () => ({ 'data-annotation-id': 'col-category' } as any), render: (text: string) => <Tag color="blue">{text}</Tag> },
     { title: '订单金额', dataIndex: 'totalAmount', key: 'totalAmount', align: 'right' as const, render: (val: number) => `¥${val.toLocaleString()}` },
     { title: '订单日期', dataIndex: 'orderDate', key: 'orderDate' },
     { title: '交货日期', dataIndex: 'expectedDeliveryDate', key: 'expectedDeliveryDate' },
@@ -248,18 +250,20 @@ const OrderManagement = () => {
       title: '操作',
       key: 'action',
       width: 200,
+      onCell: () => ({ 'data-annotation-id': 'col-action' } as any),
       render: (_: unknown, record: Order) => (
         <Space>
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleViewDetail(record)}>查看</Button>
+          <Button type="link" size="small" data-annotation-id="btn-view" icon={<EyeOutlined />} onClick={() => handleViewDetail(record)}>查看</Button>
           {record.status === 'pending' && canApprove(record.categoryId) && (
             <>
-              <Button type="link" size="small" icon={<CheckOutlined />} style={{ color: '#52c41a' }} onClick={() => handleApprove(record)}>审批</Button>
-              <Button type="link" size="small" icon={<CloseOutlined />} style={{ color: '#f5222d' }} onClick={() => handleReject(record)}>拒绝</Button>
+              <Button type="link" size="small" data-annotation-id="btn-approve" icon={<CheckOutlined />} style={{ color: '#52c41a' }} onClick={() => handleApprove(record)}>审批</Button>
+              <Button type="link" size="small" data-annotation-id="btn-reject" icon={<CloseOutlined />} style={{ color: '#f5222d' }} onClick={() => handleReject(record)}>拒绝</Button>
             </>
           )}
           {canHide(record.categoryId) && (
             <Tooltip title={record.hidden ? '点击显示' : '点击隐藏'}>
               <Switch
+                data-annotation-id="switch-hide"
                 size="small"
                 checked={!record.hidden}
                 onChange={() => handleHideToggle(record)}
@@ -274,6 +278,7 @@ const OrderManagement = () => {
   ]
 
   return (
+    <ProductAnnotation config={orderManagementAnnotations}>
     <Card>
       <AdvancedSearchFilter
         fields={[
@@ -300,6 +305,7 @@ const OrderManagement = () => {
       </div>
 
       <Table
+        data-annotation-id="order-table"
         rowKey="id"
         columns={columns}
         dataSource={orders}
@@ -409,6 +415,7 @@ const OrderManagement = () => {
         )}
       </Drawer>
     </Card>
+    </ProductAnnotation>
   )
 }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Card, Row, Col, Button, Form, Input, Select, Upload, Divider, List, Tag,
-  Table, Space, Modal, Avatar, Tabs, Alert, message, Badge, Checkbox, Radio, Typography, Descriptions, Drawer, Tree, TreeSelect, Transfer, Switch, Steps, DatePicker, Tooltip, Timeline
+  Table, Space, Modal, Avatar, Tabs, Alert, message, Badge, Checkbox, Radio, Typography, Descriptions, Drawer, Tree, TreeSelect, Transfer, Switch, Steps, DatePicker, Tooltip, Timeline, Empty
 } from 'antd';
 import {
   UserOutlined, UploadOutlined, SettingOutlined, FileTextOutlined,
@@ -208,6 +208,17 @@ const Account: React.FC = () => {
     fetchCertificates();
     fetchUsers();
     fetchRoles();
+    // 模拟电签授权书驳回状态
+    setEsignAuthInfo({
+      status: 'rejected',
+      authNo: '',
+      applyTime: '2024-07-08 14:20:00',
+      reviewer: '零售审核员-张工',
+      reviewTime: '',
+      rejectTime: '2024-07-09 10:15:00',
+      rejectReason: '授权书盖章不清晰，请重新加盖清晰公章后上传；另请补充经办人身份证复印件。',
+      resubmitCount: 0,
+    });
   }, []);
 
   // 根据路由确定默认激活的标签页
@@ -270,16 +281,36 @@ const Account: React.FC = () => {
   };
 
   // 判断当前用户是否为超管
-  const isCurrentUserAdmin = () => {
-    return currentUser?.supplier_roles?.some((sr: any) => sr.roles?.includes('admin'));
+  const isCurrentUserAdmin = (): boolean => {
+    try {
+      const raw = localStorage.getItem('supplier_userInfo');
+      if (!raw) return false;
+      const info = JSON.parse(raw);
+      return !!info?.supplier_roles?.some((sr: any) => Array.isArray(sr.roles) && sr.roles.includes('admin'));
+    } catch {
+      return false;
+    }
   };
 
-  // 判断是否有权限修改目标用户
-  const canModifyUser = (targetUser: any): boolean => {
-    if (isCurrentUserAdmin()) return true;
-    const hasAdminRole = targetUser.supplier_roles?.some((sr: any) => sr.roles?.includes('admin'));
-    if (hasAdminRole) return false;
-    return true;
+  // 获取当前登录用户自身的所有角色 code（用于子集校验）
+  const getMyRoleCodes = (): string[] => {
+    try {
+      const raw = localStorage.getItem('supplier_userInfo');
+      if (!raw) return [];
+      const info = JSON.parse(raw);
+      const list: string[] = [];
+      (info?.supplier_roles || []).forEach((sr: any) => {
+        if (Array.isArray(sr.roles)) list.push(...sr.roles);
+      });
+      return Array.from(new Set(list));
+    } catch {
+      return [];
+    }
+  };
+
+  // 判断是否有权限修改目标用户：仅超管可改任何人；非超管一律不可改（含自己）
+  const canModifyUser = (_targetUser: any): boolean => {
+    return isCurrentUserAdmin();
   };
 
   // 判断目标用户权限是否为当前用户权限的子集
@@ -381,6 +412,7 @@ const Account: React.FC = () => {
       supplierForm.resetFields();
       fetchSuppliers();
     } catch (error) {
+      // 子集校验/管理员校验已在内部 return，这里只剩真正的异常
       message.error('保存失败');
     }
   };
@@ -1331,6 +1363,45 @@ const Account: React.FC = () => {
         return;
       }
 
+      // 计算保存后所有供应商下的角色 code 集合（用于 3 道权限校验）
+      const submittingRoleCodes: string[] = [];
+      userModalSupplierScopes.forEach(s => {
+        if (userModalSelectedSupplierCodes.includes(s.supplier_code)) {
+          (s.roles || []).forEach((r: string) => submittingRoleCodes.push(r));
+        }
+      });
+      const submittingHasAdmin = submittingRoleCodes.includes('admin');
+
+      // 校验 1：非超管不能被设为超管（全局硬约束）
+      if (submittingHasAdmin && !isCurrentUserAdmin()) {
+        message.error('仅超管可授予超管权限');
+        return;
+      }
+
+      // 校验 2：编辑自己时，禁止变更自己的超管状态（防自提权/自降权）
+      if (editingUserId && !isCurrentUserAdmin()) {
+        const me = users.find(u => u.id === editingUserId);
+        const wasAdmin = !!me?.supplier_roles?.some((sr: any) => Array.isArray(sr.roles) && sr.roles.includes('admin'));
+        if (wasAdmin !== submittingHasAdmin) {
+          message.error('无权修改自己的超管状态');
+          return;
+        }
+      }
+
+      // 校验 3：非超管角色必须是当前用户角色的子集
+      if (!isCurrentUserAdmin()) {
+        const myRoles = new Set(getMyRoleCodes());
+        userModalSelectedSupplierCodes.forEach(code => {
+          const scopeRoles = (userModalSupplierScopes.find(s => s.supplier_code === code)?.roles) || [];
+          scopeRoles.forEach((r: string) => {
+            if (!myRoles.has(r)) {
+              message.error(`您没有角色 ${r} 的分配权限`);
+              throw new Error('__role_subset_block__');
+            }
+          });
+        });
+      }
+
       // 校验每个供应商至少选择一个角色
       const invalidScope = userModalSupplierScopes.find(s =>
         userModalSelectedSupplierCodes.includes(s.supplier_code) && (!s.roles || s.roles.length === 0)
@@ -1396,6 +1467,7 @@ const Account: React.FC = () => {
       setCurrentScopeSupplierCode(null);
       setEditingUserId(null);
     } catch (error) {
+      // 三道权限校验已在函数内 message + return 拦截，这里是真正的保存异常
       message.error('保存失败');
     }
   };
@@ -1888,18 +1960,20 @@ const Account: React.FC = () => {
                     )}
                   </div>
                   {esignAuthInfo && (
-                    <Alert
-                      message={esignAuthInfo.status === 'pending' ? '审核中' : esignAuthInfo.status === 'approved' ? '已通过' : '已驳回'}
-                      description={esignAuthInfo.status === 'pending'
-                        ? `申请时间：${esignAuthInfo.applyTime}，请等待零售商管理员审核`
-                        : esignAuthInfo.status === 'approved'
-                          ? `授权编号：${esignAuthInfo.authNo}，有效期至：${esignAuthInfo.expireTime}`
-                          : `驳回原因：${esignAuthInfo.rejectReason || '请联系零售商管理员了解详情'}`
-                      }
-                      type={esignAuthInfo.status === 'approved' ? 'success' : esignAuthInfo.status === 'rejected' ? 'error' : 'info'}
-                      showIcon
-                      style={{ marginTop: '12px' }}
-                    />
+                    <>
+                      <Alert
+                        message={esignAuthInfo.status === 'pending' ? '审核中' : esignAuthInfo.status === 'approved' ? '已通过' : '已驳回'}
+                        description={esignAuthInfo.status === 'pending'
+                          ? `申请时间：${esignAuthInfo.applyTime}，请等待零售商管理员审核`
+                          : esignAuthInfo.status === 'approved'
+                            ? `授权编号：${esignAuthInfo.authNo}，有效期至：${esignAuthInfo.expireTime}`
+                            : `驳回原因：${esignAuthInfo.rejectReason || '请联系零售商管理员了解详情'}`
+                        }
+                        type={esignAuthInfo.status === 'approved' ? 'success' : esignAuthInfo.status === 'rejected' ? 'error' : 'info'}
+                        showIcon
+                        style={{ marginTop: '12px' }}
+                      />
+                    </>
                   )}
                 </div>
 
@@ -2494,6 +2568,20 @@ const Account: React.FC = () => {
         </div>
       );
     } else if (path === '/account/users') {
+      if (!isCurrentUserAdmin()) {
+        return (
+          <Empty
+            description={
+              <div>
+                <div>员工管理功能仅对超管开放</div>
+                <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
+                  当前账号无访问权限
+                </div>
+              </div>
+            }
+          />
+        );
+      }
       // 人员管理页面
       return (
         <div>
@@ -2515,36 +2603,38 @@ const Account: React.FC = () => {
                         </Select.Option>
                       ))}
                     </Select>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => {
-                        userForm.resetFields();
-                        // 重置数据权限状态
-                        setUserModalDataType('all');
-                        setUserModalDataScopeDetail({
-                          regions: [],
-                          stores: [],
-                          counters: []
-                        });
-                        // 重置树状选择
-                        setUserModalSelectedTreeKeys([]);
-                        // 默认使用当前选中的供应商代码
-                        const defaultCodes = selectedUserSupplierCode ? [selectedUserSupplierCode] : (currentSupplier?.codes || []);
-                        setUserModalSelectedSupplierCodes(defaultCodes);
-                        setUserModalSupplierScopes(defaultCodes.map((code: string) => ({
-                          supplier_code: code,
-                          supplier_name: supplierCodeNameMap[code] || code,
-                          data_scope: { type: 'all', label: '全部数据', detail: { regions: [], stores: [], counters: [], selectedNames: [] } }
-                        })));
-                        setCurrentScopeSupplierCode(null);
-                        // 标记为新建模式
-                        setEditingUserId(null);
-                        setUserModalVisible(true);
-                      }}
-                    >
-                      添加用户
-                    </Button>
+                    {isCurrentUserAdmin() && (
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => {
+                          userForm.resetFields();
+                          // 重置数据权限状态
+                          setUserModalDataType('all');
+                          setUserModalDataScopeDetail({
+                            regions: [],
+                            stores: [],
+                            counters: []
+                          });
+                          // 重置树状选择
+                          setUserModalSelectedTreeKeys([]);
+                          // 默认使用当前选中的供应商代码
+                          const defaultCodes = selectedUserSupplierCode ? [selectedUserSupplierCode] : (currentSupplier?.codes || []);
+                          setUserModalSelectedSupplierCodes(defaultCodes);
+                          setUserModalSupplierScopes(defaultCodes.map((code: string) => ({
+                            supplier_code: code,
+                            supplier_name: supplierCodeNameMap[code] || code,
+                            data_scope: { type: 'all', label: '全部数据', detail: { regions: [], stores: [], counters: [], selectedNames: [] } }
+                          })));
+                          setCurrentScopeSupplierCode(null);
+                          // 标记为新建模式
+                          setEditingUserId(null);
+                          setUserModalVisible(true);
+                        }}
+                      >
+                        添加用户
+                      </Button>
+                    )}
                     {currentUser?.supplier_roles?.some((sr: any) => sr.roles?.includes('admin')) && (
                       <Button
                         type="primary"
@@ -3279,11 +3369,13 @@ const Account: React.FC = () => {
                     value={scope?.roles || []}
                     onChange={(values) => handleSupplierRolesChange(code, values as string[])}
                   >
-                    {roles.map(role => (
-                      <Option key={role.code} value={role.code}>
-                        {role.name}
-                      </Option>
-                    ))}
+                    {roles
+                      .filter((role: any) => isCurrentUserAdmin() || getMyRoleCodes().includes(role.code))
+                      .map(role => (
+                        <Option key={role.code} value={role.code}>
+                          {role.name}
+                        </Option>
+                      ))}
                   </Select>
                 </div>
 
@@ -3293,9 +3385,17 @@ const Account: React.FC = () => {
                   onChange={(e) => handleSupplierScopeTypeChange(code, e.target.value)}
                   style={{ marginBottom: 12 }}
                 >
-                  <Radio value="all">全部数据</Radio>
+                  <Radio value="all" disabled={!isCurrentUserAdmin()}>全部数据</Radio>
                   <Radio value="custom">自定义范围</Radio>
                 </Radio.Group>
+                {!isCurrentUserAdmin() && (
+                  <Alert
+                    type="warning"
+                    message="仅超管可授予「全部数据」权限"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                  />
+                )}
 
                 {scopeType === 'custom' ? (
                   <Space direction="vertical" style={{ width: '100%' }}>
@@ -4411,7 +4511,7 @@ const Account: React.FC = () => {
 
       {/* 电签授权书申请 Modal */}
       <Modal
-        title="企业授权书申请"
+        title={esignAuthInfo?.status === 'rejected' ? '重新提交企业授权书' : '企业授权书申请'}
         open={esignApplyModalVisible}
         onCancel={() => setEsignApplyModalVisible(false)}
         footer={null}
@@ -4440,21 +4540,56 @@ const Account: React.FC = () => {
           form={esignForm}
           layout="vertical"
           onFinish={(values) => {
-            setEsignApplying(true);
-            setTimeout(() => {
-              setEsignAuthInfo({
-                status: 'pending',
-                authNo: '',
-                applyTime: new Date().toLocaleString(),
-                reviewer: '',
-                reviewTime: '',
-                expireTime: '',
+            // 二次确认（仅驳回重新提交时）
+            const doSubmit = () => {
+              setEsignApplying(true);
+              setTimeout(() => {
+                setEsignAuthInfo((prev: any) => {
+                  const isResubmit = prev?.status === 'rejected';
+                  return {
+                    ...(prev || {}),
+                    status: 'pending',
+                    authNo: prev?.authNo || '',
+                    applyTime: new Date().toLocaleString(),
+                    reviewer: '',
+                    reviewTime: '',
+                    expireTime: prev?.expireTime || '',
+                    // 重新提交次数 +1
+                    resubmitCount: isResubmit ? (prev.resubmitCount || 0) + 1 : (prev?.resubmitCount || 0),
+                    // 驳回信息保留（让供应商对照修改）
+                    rejectReason: prev?.rejectReason || '',
+                    rejectTime: prev?.rejectTime || '',
+                  };
+                });
+                setEsignApplyModalVisible(false);
+                setEsignApplying(false);
+                esignForm.resetFields();
+                message.success(
+                  esignAuthInfo?.status === 'rejected'
+                    ? '授权书已重新提交，请等待审核'
+                    : '授权书申请已提交，请等待审核'
+                );
+              }, 1500);
+            };
+
+            if (esignAuthInfo?.status === 'rejected') {
+              Modal.confirm({
+                title: '确认重新提交',
+                content: (
+                  <div>
+                    <p>确认要重新提交授权书申请吗？</p>
+                    <p style={{ color: '#999', fontSize: 12 }}>
+                      重新提交后，零售商管理员将重新审核。在此之前请确保已按驳回原因完成修改。
+                    </p>
+                  </div>
+                ),
+                okText: '确认重新提交',
+                cancelText: '取消',
+                onOk: doSubmit,
               });
-              setEsignApplyModalVisible(false);
-              setEsignApplying(false);
-              esignForm.resetFields();
-              message.success('授权书申请已提交，请等待审核');
-            }, 1500);
+            } else {
+              doSubmit();
+            }
           }}
         >
           <Alert
@@ -4487,6 +4622,8 @@ const Account: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* 电签授权审核历史 Drawer（已删除） */}
     </div>
   );
 };

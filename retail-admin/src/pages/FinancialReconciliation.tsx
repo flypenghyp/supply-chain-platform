@@ -29,6 +29,8 @@ import {
 } from '@ant-design/icons'
 import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
 import type { ColumnsType } from 'antd/es/table'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { financialReconciliationAnnotations } from './annotations/financial-reconciliation'
 
 const { Title, Text } = Typography
 
@@ -210,6 +212,7 @@ const FinancialReconciliation = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      onCell: () => ({ 'data-annotation-id': 'col-statement-status' } as any),
       render: (status: string) => {
         const config = getStatementStatusConfig(status)
         return <Tag color={config.color}>{config.text}</Tag>
@@ -220,13 +223,14 @@ const FinancialReconciliation = () => {
       title: '操作',
       key: 'action',
       width: 150,
+      onCell: () => ({ 'data-annotation-id': 'col-action' } as any),
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
+          <Button type="link" size="small" data-annotation-id="btn-view-detail" onClick={() => handleViewDetail(record)}>
             详情
           </Button>
           {record.status === 'pending' && (
-            <Button type="link" size="small" onClick={() => handleConfirm(record.id)}>
+            <Button type="link" size="small" data-annotation-id="btn-confirm-statement" onClick={() => handleConfirm(record.id)}>
               确认
             </Button>
           )}
@@ -350,10 +354,11 @@ const FinancialReconciliation = () => {
   }
 
   return (
+    <ProductAnnotation config={financialReconciliationAnnotations}>
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5' }}>
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}>
-          <Card>
+          <Card data-annotation-id="stat-payable">
             <Statistic
               title="本月应付总额"
               value={681000}
@@ -399,6 +404,7 @@ const FinancialReconciliation = () => {
 
       <Card>
         <Alert
+          data-annotation-id="alert-rule"
           message="业务规则提示"
           description="1. 按会计期间合并正负金额单据生成结算申请；2. 负金额单据为必勾项；3. 结算单生成后可选择是否立即开具发票。"
           type="info"
@@ -419,8 +425,8 @@ const FinancialReconciliation = () => {
         />
         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
           <Space>
-            <Button type="primary" onClick={() => handleBatchConfirm(selectedStatementIds)} style={{ height: 32 }}>批量确认</Button>
-            <Button type="primary" onClick={handleBatchExport} style={{ height: 32 }}>导出</Button>
+            <Button type="primary" data-annotation-id="btn-batch-confirm" onClick={() => handleBatchConfirm(selectedStatementIds)} style={{ height: 32 }}>批量确认</Button>
+            <Button type="primary" data-annotation-id="btn-export" onClick={handleBatchExport} style={{ height: 32 }}>导出</Button>
           </Space>
         </div>
         <Table
@@ -489,6 +495,7 @@ const FinancialReconciliation = () => {
 
             <Title level={5} style={{ marginBottom: '16px' }}>关联发票</Title>
             <Table
+              data-annotation-id="related-invoices"
               rowKey="id"
               columns={invoiceColumns}
               dataSource={invoices.filter(inv => inv.statementNo === selectedStatement.statementNo)}
@@ -509,6 +516,7 @@ const FinancialReconciliation = () => {
         )}
       </Drawer>
     </div>
+    </ProductAnnotation>
   )
 }
 

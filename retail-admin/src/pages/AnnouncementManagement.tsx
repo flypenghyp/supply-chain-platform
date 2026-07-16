@@ -30,6 +30,8 @@ import {
   EyeOutlined,
 } from '@ant-design/icons'
 import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { announcementManagementAnnotations } from './annotations/announcement-management'
 import {
   SendOutlined,
   FileTextOutlined,
@@ -503,6 +505,7 @@ const AnnouncementManagement = () => {
   ]
 
   return (
+    <ProductAnnotation config={announcementManagementAnnotations}>
     <Card>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
         <Space>
@@ -534,6 +537,7 @@ const AnnouncementManagement = () => {
       />
 
       <Table
+        data-annotation-id="announcement-table"
         rowKey="id"
         columns={columns}
         dataSource={filteredAnnouncements}
@@ -738,6 +742,7 @@ const AnnouncementManagement = () => {
         />
       </Drawer>
     </Card>
+    </ProductAnnotation>
   )
 }
 

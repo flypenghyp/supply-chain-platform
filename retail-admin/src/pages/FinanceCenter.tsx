@@ -467,6 +467,7 @@ const FinanceCenter = () => {
   }
 
   return (
+    <ProductAnnotation config={financeCenterAnnotations}>
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5' }}>
       <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={6}>
@@ -592,6 +593,7 @@ const FinanceCenter = () => {
         )}
       </Drawer>
     </div>
+    </ProductAnnotation>
   )
 }
 

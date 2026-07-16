@@ -13,6 +13,8 @@ import {
   Drawer,
 } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined } from '@ant-design/icons'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { esignAuthorizationApprovalAnnotations } from './annotations/esign-authorization-approval'
 
 interface AuthorizationRecord {
   id: string
@@ -183,6 +185,7 @@ const EsignAuthorizationApproval = () => {
   ]
 
   return (
+    <ProductAnnotation config={esignAuthorizationApprovalAnnotations}>
     <Card title="授权委托书审批">
       <Table
         rowKey="id"
@@ -257,6 +260,7 @@ const EsignAuthorizationApproval = () => {
         )}
       </Drawer>
     </Card>
+    </ProductAnnotation>
   )
 }
 

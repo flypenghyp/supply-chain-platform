@@ -28,6 +28,8 @@ import dayjs from 'dayjs'
 import ChangeSuperAdminModal from './components/ChangeSuperAdminModal'
 import PhoneDisplay from '../components/PhoneDisplay'
 import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { supplierManagementAnnotations } from './annotations/supplier-management'
 
 const { Text, Paragraph } = Typography
 const { Dragger } = Upload
@@ -912,7 +914,7 @@ const SupplierManagement = () => {
   const columns = [
     { title: '供应商编码', dataIndex: 'code', key: 'code', width: 100, fixed: 'left' as const },
     { title: '供应商名称', dataIndex: 'name', key: 'name', width: 180, fixed: 'left' as const },
-    { title: '认证状态', dataIndex: 'auth_status', key: 'auth_status', width: 100 },
+    { title: '认证状态', dataIndex: 'auth_status', key: 'auth_status', width: 100, onCell: () => ({ 'data-annotation-id': 'col-auth-status' } as any) },
     { title: '公司/个人', dataIndex: 'supplier_type', key: 'supplier_type', width: 100 },
     { title: '社会信用统一编码/身份证', dataIndex: 'credit_code', key: 'credit_code', width: 180 },
     { title: '经营小类代码', dataIndex: 'business_category_code', key: 'business_category_code', width: 120 },
@@ -925,20 +927,23 @@ const SupplierManagement = () => {
       key: 'action',
       width: 160,
       fixed: 'right' as const,
+      onCell: () => ({ 'data-annotation-id': 'table-action-col' } as any),
       render: (_: unknown, record: any) => (
         <Space size="small">
-          <Button 
-            type="link" 
-            size="small" 
+          <Button
+            type="link"
+            size="small"
+            data-annotation-id="btn-user-manage"
             onClick={() => handleUserManage(record)}
             style={{ color: '#1890ff' }}
           >
             用户管理
           </Button>
           {!record.has_config_person && (
-            <Button 
-              type="link" 
-              size="small" 
+            <Button
+              type="link"
+              size="small"
+              data-annotation-id="btn-config-admin"
               onClick={() => handleConfigAdmin(record)}
               style={{ color: '#1890ff' }}
             >
@@ -951,8 +956,10 @@ const SupplierManagement = () => {
   ]
 
   return (
+    <ProductAnnotation config={supplierManagementAnnotations}>
     <Card>
       <Alert
+        data-annotation-id="alert-data-source"
         message="供应商管理功能说明"
         description={
           <div>
@@ -974,6 +981,7 @@ const SupplierManagement = () => {
       />
 
       <AdvancedSearchFilter
+        data-annotation-id="search-filter"
         fields={[
           { key: 'supplierKeyword', label: '供应商', type: 'input', placeholder: '请输入供应商编码或名称' },
           { key: 'creditCode', label: '信用代码', type: 'input', placeholder: '请输入信用代码' },
@@ -993,6 +1001,7 @@ const SupplierManagement = () => {
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Button
           type="primary"
+          data-annotation-id="btn-batch-import"
           onClick={() => setBatchImportVisible(true)}
           style={{ height: 32 }}
         >
@@ -1002,6 +1011,7 @@ const SupplierManagement = () => {
       </div>
 
       <Table
+        data-annotation-id="supplier-table"
         rowKey="id"
         columns={columns}
         dataSource={suppliers}
@@ -1069,6 +1079,7 @@ const SupplierManagement = () => {
       </Modal>
 
       <Drawer
+        data-annotation-id="drawer-user-manage"
         title={`用户管理 - ${selectedSupplier?.name}`}
         placement="right"
         width={900}
@@ -1138,6 +1149,7 @@ const SupplierManagement = () => {
                   </div>
 
                   <Table
+                    data-annotation-id="operation-logs"
                     rowKey="id"
                     columns={operationLogColumns}
                     dataSource={logFilter.type ? operationLogs.filter(log => log.operation_type === logFilter.type) : operationLogs}
@@ -1165,6 +1177,7 @@ const SupplierManagement = () => {
       </Drawer>
 
       <Drawer
+        data-annotation-id="drawer-user-detail"
         title={`用户详情 - ${selectedUser?.name}`}
         placement="right"
         width={800}
@@ -1263,6 +1276,7 @@ const SupplierManagement = () => {
       </Drawer>
 
       <Drawer
+        data-annotation-id="drawer-esign-auth"
         title={`授权委托书 - ${selectedUser?.name}`}
         placement="right"
         width={560}
@@ -1280,6 +1294,7 @@ const SupplierManagement = () => {
           <>
             {!selectedUser.esign_auth.file_url && (
               <Alert
+                data-annotation-id="esign-auth-view"
                 message="供应商尚未上传授权委托书文件，请等待供应商上传"
                 type="warning"
                 style={{ marginBottom: 16 }}
@@ -1329,7 +1344,7 @@ const SupplierManagement = () => {
             )}
 
             {selectedUser.esign_auth.status === 'pending' && (
-              <div style={{ marginTop: 24, textAlign: 'right' }}>
+              <div data-annotation-id="esign-auth-approval" style={{ marginTop: 24, textAlign: 'right' }}>
                 <Space>
                   <Button type="primary" onClick={handleUserEsignAuthApprove}>通过</Button>
                   <Button danger onClick={() => setUserEsignAuthRejecting(true)}>驳回</Button>
@@ -1367,16 +1382,18 @@ const SupplierManagement = () => {
         </Modal>
       </Drawer>
 
-      <ChangeSuperAdminModal
-        visible={changeAdminVisible}
-        supplier={selectedSupplier}
-        currentAdmin={selectedAdminForChange}
-        onCancel={() => {
-          setChangeAdminVisible(false)
-          setSelectedAdminForChange(null)
-        }}
-        onSuccess={handleChangeAdminSuccess}
-      />
+      <div data-annotation-id="btn-change-admin">
+        <ChangeSuperAdminModal
+          visible={changeAdminVisible}
+          supplier={selectedSupplier}
+          currentAdmin={selectedAdminForChange}
+          onCancel={() => {
+            setChangeAdminVisible(false)
+            setSelectedAdminForChange(null)
+          }}
+          onSuccess={handleChangeAdminSuccess}
+        />
+      </div>
 
       <Modal
         title="批量导入供应商超管"
@@ -1438,7 +1455,7 @@ const SupplierManagement = () => {
         />
 
         {!importResult && (
-          <Card size="small" title="步骤1：下载导入模板" style={{ marginBottom: 16 }}>
+          <Card data-annotation-id="batch-import-template" size="small" title="步骤1：下载导入模板" style={{ marginBottom: 16 }}>
             <Button type="primary" onClick={handleDownloadTemplate} block>
               下载 Excel 模板 (.xlsx)
             </Button>
@@ -1574,6 +1591,7 @@ const SupplierManagement = () => {
       </Modal>
 
     </Card>
+    </ProductAnnotation>
   )
 }
 

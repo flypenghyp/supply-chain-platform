@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Card, Tabs, message } from 'antd'
 import RetailSelfOperatedPayable from './RetailSelfOperatedPayable'
 import RetailLeaseCounterPayable from './RetailLeaseCounterPayable'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { settlementApplicationAnnotations } from './annotations/settlement-application'
 
 const SettlementApplication = () => {
   const [activeTab, setActiveTab] = useState('self')
@@ -20,9 +22,11 @@ const SettlementApplication = () => {
   ]
 
   return (
+    <ProductAnnotation config={settlementApplicationAnnotations}>
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: 'calc(100vh - 64px)' }}>
       <Card>
         <Tabs
+          data-annotation-id="tabs"
           activeKey={activeTab}
           onChange={setActiveTab}
           items={tabItems}
@@ -30,6 +34,7 @@ const SettlementApplication = () => {
         />
       </Card>
     </div>
+    </ProductAnnotation>
   )
 }
 

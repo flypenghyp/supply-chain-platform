@@ -1,0 +1,63 @@
+.annotation-float-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 80px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.35);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  .icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .label {
+    font-size: 14px;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(24, 144, 255, 0.45);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, #f5222d 0%, #cf1322 100%);
+    box-shadow: 0 4px 12px rgba(245, 34, 45, 0.35);
+  }
+}
+
+.annotation-float-close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  line-height: 16px;
+  text-align: center;
+  background: #999;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+  border: 2px solid #fff;
+
+  &:hover {
+    background: #666;
+  }
+}

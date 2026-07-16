@@ -21,6 +21,8 @@ import {
   Row,
   Col,
 } from 'antd'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { enterpriseCenterAnnotations } from './annotations/enterprise-center'
 import {
   BankOutlined,
   TeamOutlined,
@@ -246,6 +248,7 @@ const EnterpriseCenter = () => {
   ]
 
   return (
+    <ProductAnnotation config={enterpriseCenterAnnotations}>
     <Card>
       <Tabs
         activeKey={activeTab}

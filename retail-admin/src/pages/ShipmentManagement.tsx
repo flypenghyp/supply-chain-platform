@@ -33,6 +33,8 @@ import {
 import { usePermission } from '@/contexts/PermissionContext'
 import type { Shipment, ShipmentItem } from '@/types'
 import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { shipmentManagementAnnotations } from './annotations/shipment-management'
 
 const { Title, Text } = Typography
 
@@ -272,6 +274,7 @@ const ShipmentManagement = () => {
   ]
 
   return (
+    <ProductAnnotation config={shipmentManagementAnnotations}>
     <Card>
       <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
         { key: 'all', label: '全部' },
@@ -421,6 +424,7 @@ const ShipmentManagement = () => {
         )}
       </Drawer>
     </Card>
+    </ProductAnnotation>
   )
 }
 

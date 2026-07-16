@@ -24,6 +24,8 @@ import {
 } from '@ant-design/icons'
 import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
 import type { ColumnsType } from 'antd/es/table'
+import ProductAnnotation from '../components/ProductAnnotation'
+import { invoiceManagementAnnotations } from './annotations/invoice-management'
 
 const { Title, Text } = Typography
 
@@ -179,6 +181,7 @@ const InvoiceManagement = () => {
   }
 
   return (
+    <ProductAnnotation config={invoiceManagementAnnotations}>
     <div style={{ padding: '24px', backgroundColor: '#f5f5f5' }}>
       <Card>
         <AdvancedSearchFilter
@@ -193,6 +196,7 @@ const InvoiceManagement = () => {
           extraActions={<Button onClick={handleExport}>导出</Button>}
         />
         <Table
+          data-annotation-id="invoice-table"
           rowKey="id"
           columns={columns}
           dataSource={invoices}
@@ -250,6 +254,7 @@ const InvoiceManagement = () => {
         )}
       </Drawer>
     </div>
+    </ProductAnnotation>
   )
 }
 

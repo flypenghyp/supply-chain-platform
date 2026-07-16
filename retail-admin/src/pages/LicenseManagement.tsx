@@ -608,6 +608,7 @@ const LicenseManagement = () => {
   ]
 
   return (
+    <ProductAnnotation config={licenseManagementAnnotations}>
     <Card>
       <Alert
         message="证照管理功能说明"

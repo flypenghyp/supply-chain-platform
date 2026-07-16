@@ -49,6 +49,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onShowTip }) => {
         name: '演示用户',
         role: 'supplier',
         loginTime: new Date().toISOString(),
+        supplier_roles: [
+          {
+            supplier_code: 'NFS001',
+            supplier_name: '农夫山泉股份有限公司',
+            roles: ['admin'],
+            role_names: ['超管'],
+          },
+        ],
       }
 
       localStorage.setItem('supplier_token', token)

@@ -266,6 +266,7 @@ const ContractManagement = () => {
   ]
 
   return (
+    <ProductAnnotation config={contractManagementAnnotations}>
     <div>
       {/* 合同列表 */}
       <Card title="电子合同">
@@ -439,6 +440,7 @@ const ContractManagement = () => {
         )}
       </Drawer>
     </div>
+    </ProductAnnotation>
   )
 }
 
