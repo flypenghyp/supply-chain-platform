@@ -1,11 +1,19 @@
 import express, { Request, Response } from 'express';
 import * as controllers from '../controllers/index.js';
 import aiRoutes from './ai.js';
+import licenseRoutes from './licenses.js';
+import authorizationRoutes from './authorizations.js';
+import roleRoutes from './roles.js';
 
 const router = express.Router();
 
 // AI routes
 router.use('/ai', aiRoutes);
+
+// Phase 1 新增路由
+router.use(licenseRoutes);
+router.use(authorizationRoutes);
+router.use(roleRoutes);
 
 // Supplier routes
 router.get('/suppliers', async (req: Request, res: Response) => {

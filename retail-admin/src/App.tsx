@@ -17,6 +17,10 @@ import SupplierManagement from './pages/SupplierManagement'
 import QualityManagement from './pages/QualityManagement'
 import EsignAuthorizationApproval from './pages/EsignAuthorizationApproval'
 import AnnouncementManagement from './pages/AnnouncementManagement'
+// Phase 1 新增
+import LicenseManagement from './pages/LicenseManagement'
+import UserManagement from './pages/UserManagement'
+import SuperAdminConfig from './pages/SuperAdminConfig'
 
 // 默认管理员权限
 const DEFAULT_PERMISSION = {
@@ -61,7 +65,7 @@ const ExternalRedirect = ({ url }: { url: string }) => {
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(true) // 默认已登录
-  const { setPermission } = usePermission()
+  const { setPermission, refresh: refreshPermission } = usePermission()
 
   useEffect(() => {
     // 初始化默认权限
@@ -71,17 +75,35 @@ function AppContent() {
     }
     const stored = localStorage.getItem('userPermission')
     if (stored) {
-      setPermission(JSON.parse(stored))
+      const p = JSON.parse(stored)
+      setPermission(p)
+      // Phase 1: 同步初始化 retail_userInfo（双层权限）
+      if (!localStorage.getItem('retail_userInfo')) {
+        const retailUserInfo = {
+          id: p.user?.id || '1',
+          phone: p.user?.phone || '',
+          name: p.user?.realName || p.user?.username || '系统用户',
+          supplier_code: p.user?.supplier_code || 'NFS001',
+          roles: p.roles || ['super_admin'],
+          data_scope_type: 'all',
+          data_scope_ids: [],
+          categories: p.categories,
+        }
+        localStorage.setItem('retail_userInfo', JSON.stringify(retailUserInfo))
+      }
+      refreshPermission()
     }
-  }, [setPermission])
+  }, [setPermission, refreshPermission])
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true)
+    refreshPermission()
   }
 
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('userPermission')
+    localStorage.removeItem('retail_userInfo')  // Phase 1
     setIsAuthenticated(false)
   }
 
@@ -113,9 +135,14 @@ function AppContent() {
                 <Route path="/shipments" element={<ShipmentManagement />} />
                 <Route path="/suppliers" element={<SupplierManagement />} />
                 <Route path="/quality" element={<QualityManagement />} />
-                <Route path="/licenses" element={<ExternalRedirect url="https://hlj.rainbowcn.com/oep-manage/business/supplier/daily-manage/certificate/list" />} />
+                <Route path="/licenses" element={<LicenseManagement />} />
                 <Route path="/esign-approval" element={<EsignAuthorizationApproval />} />
                 <Route path="/announcements" element={<AnnouncementManagement />} />
+                {/* Phase 1 新增路由 */}
+                <Route path="/user-management" element={<UserManagement />} />
+                <Route path="/authorization-letters" element={<UserManagement />} />
+                <Route path="/operation-logs" element={<UserManagement />} />
+                <Route path="/super-admin-config" element={<SuperAdminConfig />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </MainLayout>

@@ -1,980 +1,463 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
-  Card,
-  Table,
-  Button,
-  Tag,
-  Space,
-  Drawer,
-  Form,
-  Input,
-  Select,
-  Descriptions,
-  message,
-  Popconfirm,
-  Row,
-  Col,
-  DatePicker,
-  Upload,
-  Modal,
-  Alert,
+  Card, Table, Button, Space, Tag, Modal, Form, Input, Select, DatePicker,
+  message, Row, Col, Statistic, Upload, Alert, Radio, Tooltip, Empty, Spin,
 } from 'antd'
 import {
-  PlusOutlined,
-  EyeOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  SearchOutlined,
-  UploadOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
+  PlusOutlined, ReloadOutlined, RobotOutlined, CameraOutlined,
+  CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleOutlined,
 } from '@ant-design/icons'
-import AdvancedSearchFilter from '../components/common/AdvancedSearchFilter'
-import { useNavigate, useLocation } from 'react-router-dom'
+import type { License, LicenseType } from '@/types/phase1'
+import { LICENSE_TYPES } from '@/types/phase1'
 import { usePermission } from '@/contexts/PermissionContext'
 
-const { RangePicker } = DatePicker
 const { Option } = Select
+const { RangePicker } = DatePicker
 
-// 证照类型
-const licenseTypes = [
-  { value: 'enterprise', label: '企业资质证照' },
-  { value: 'product', label: '产品资质证照' },
-  { value: 'circulation', label: '产品流通类证照' },
-  { value: 'authorization', label: '授权委托证照' },
-  { value: 'store', label: '门店商户租赁证照' },
-]
+const LicenseManagement: React.FC = () => {
+  const { isAdmin } = usePermission()
 
-// 证照状态
-const licenseStatus = [
-  { value: 'normal', label: '正常' },
-  { value: 'expired', label: '已过期' },
-  { value: 'warning', label: '即将过期' },
-  { value: 'invalid', label: '无效' },
-]
-
-const LicenseManagement = () => {
-  const [licenses, setLicenses] = useState<any[]>([])
-  const [filteredLicenses, setFilteredLicenses] = useState<any[]>([])
+  // 数据
+  const [licenses, setLicenses] = useState<License[]>([])
   const [loading, setLoading] = useState(false)
-  const [detailVisible, setDetailVisible] = useState(false)
-  const [editVisible, setEditVisible] = useState(false)
-  const [addVisible, setAddVisible] = useState(false)
-  const [selectedLicense, setSelectedLicense] = useState<any>(null)
-  const [searchForm] = Form.useForm()
-  const [editForm] = Form.useForm()
-  const [addForm] = Form.useForm()
-  const [suppliers, setSuppliers] = useState<any[]>([])
-  const [rejectModalVisible, setRejectModalVisible] = useState(false)
-  const [rejectingRecord, setRejectingRecord] = useState<any>(null)
-  const [rejectReason, setRejectReason] = useState('')
-  const [filters, setFilters] = useState<any>({
-    supplierCode: undefined,
-    supplierName: undefined,
-    type: undefined,
-    status: undefined,
-    approvalStatus: undefined,
-  })
-  
-  const navigate = useNavigate()
-  const { canEdit } = usePermission()
-  const location = useLocation()
+  const [filterType, setFilterType] = useState<string>('all')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
 
-  // 从供应商管理页面传递过来的参数
-  const { supplierId, supplierName, supplierCode } = location.state || {}
+  // 编辑弹窗
+  const [editOpen, setEditOpen] = useState(false)
+  const [editing, setEditing] = useState<License | null>(null)
+  const [form] = Form.useForm()
+  const [isPermanent, setIsPermanent] = useState(false)
+  const [aiRecognizing, setAiRecognizing] = useState(false)
+  const [aiResult, setAiResult] = useState<any>(null)
 
-  // 模拟供应商数据
-  useEffect(() => {
-    fetchSuppliers()
-  }, [])
-
-  // 模拟证照数据
-  useEffect(() => {
-    fetchLicenses()
-  }, [])
-
-  // 当从供应商管理页面跳转过来时，自动过滤显示该供应商的证照
-  useEffect(() => {
-    if (supplierId) {
-      setFilteredLicenses(licenses.filter(l => l.supplierId === supplierId))
-    } else {
-      setFilteredLicenses(licenses)
-    }
-  }, [supplierId, licenses])
-
-  const fetchSuppliers = async () => {
-    const mockSuppliers = [
-      { id: '1', code: '302066', name: '宝洁（中国）有限公司' },
-      { id: '2', code: '303300', name: '好利来食品有限公司' },
-      { id: '3', code: '592000222', name: '厦门商贸集团有限公司' },
-    ]
-    setSuppliers(mockSuppliers)
-  }
-
-  const fetchLicenses = async () => {
+  // 加载
+  const loadData = () => {
     setLoading(true)
-    const mockLicenses = [
-      {
-        id: '1',
-        supplierId: '1',
-        supplierName: '宝洁（中国）有限公司',
-        supplierCode: '302066',
-        type: 'enterprise',
-        typeName: '企业资质证照',
-        name: '营业执照',
-        licenseNo: '91440101618420138P',
-        issueDate: '2022-01-01',
-        expiryDate: '2027-01-01',
-        status: 'invalid',
-        statusName: '无效',
-        fileUrl: '',
-        notes: '企业营业执照',
-        submitDate: '2024-01-15',
-        submitBy: '张经理',
-        approvalStatus: 'approved',
-        approvalStatusName: '已审核',
-        isMaster: false,
-        versionSequence: 1,
-        renewedCertId: '7',
-      },
-      {
-        id: '2',
-        supplierId: '1',
-        supplierName: '宝洁（中国）有限公司',
-        supplierCode: '302066',
-        type: 'product',
-        typeName: '产品资质证照',
-        name: '产品检测报告',
-        licenseNo: 'PRO2024001',
-        issueDate: '2024-01-10',
-        expiryDate: '2025-01-10',
-        status: 'normal',
-        statusName: '正常',
-        fileUrl: '',
-        notes: '产品质量检测报告',
-        submitDate: '2024-01-15',
-        submitBy: '张经理',
-        approvalStatus: 'approved',
-        approvalStatusName: '已审核',
-        isMaster: true,
-        versionSequence: 1,
-      },
-      {
-        id: '3',
-        supplierId: '2',
-        supplierName: '好利来食品有限公司',
-        supplierCode: '303300',
-        type: 'enterprise',
-        typeName: '企业资质证照',
-        name: '营业执照',
-        licenseNo: '91310000987654321Y',
-        issueDate: '2021-06-01',
-        expiryDate: '2024-05-31',
-        status: 'warning',
-        statusName: '即将过期',
-        fileUrl: '',
-        notes: '企业营业执照',
-        submitDate: '2024-01-10',
-        submitBy: '李经理',
-        approvalStatus: 'approved',
-        approvalStatusName: '已审核',
-        isMaster: true,
-        versionSequence: 1,
-      },
-      {
-        id: '4',
-        supplierId: '3',
-        supplierName: '厦门商贸集团有限公司',
-        supplierCode: '592000222',
-        type: 'authorization',
-        typeName: '授权委托证照',
-        name: '品牌授权书',
-        licenseNo: 'AUTH2024001',
-        issueDate: '2024-01-01',
-        expiryDate: '2024-12-31',
-        status: 'normal',
-        statusName: '正常',
-        fileUrl: '',
-        notes: '品牌授权书',
-        submitDate: '2024-01-05',
-        submitBy: '王经理',
-        approvalStatus: 'pending',
-        approvalStatusName: '待审核',
-        isMaster: true,
-        versionSequence: 1,
-        renewedCertId: '8',
-      },
-      {
-        // 延期申请示例
-        id: '5',
-        supplierId: '1',
-        supplierName: '宝洁（中国）有限公司',
-        supplierCode: '302066',
-        type: 'enterprise',
-        typeName: '企业资质证照',
-        name: '营业执照（延期）',
-        licenseNo: '91440101618420138P',
-        issueDate: '2027-01-01',
-        expiryDate: '2032-01-01',
-        status: 'normal',
-        statusName: '正常',
-        fileUrl: '',
-        notes: '营业执照延期申请 - 原证照即将到期，申请延长有效期',
-        submitDate: '2024-06-22',
-        submitBy: '张经理',
-        approvalStatus: 'pending',
-        approvalStatusName: '待审核',
-        operationType: 'renew',
-        operationTypeLabel: '延期申请',
-        sourceCertId: '1',
-        isMaster: false,
-        versionSequence: 2,
-      },
-      {
-        id: '6',
-        supplierId: '2',
-        supplierName: '好利来食品有限公司',
-        supplierCode: '303300',
-        type: 'enterprise',
-        typeName: '企业资质证照',
-        name: '营业执照（已过期）',
-        licenseNo: '91310000987654321Y',
-        issueDate: '2021-06-01',
-        expiryDate: '2024-05-31',
-        status: 'expired',
-        statusName: '已过期',
-        fileUrl: '',
-        notes: '企业营业执照已过期，尚未申请延期',
-        submitDate: '2024-01-10',
-        submitBy: '李经理',
-        approvalStatus: 'approved',
-        approvalStatusName: '已审核',
-        operationType: 'add',
-        operationTypeLabel: '新增',
-        isMaster: true,
-        versionSequence: 1,
-      },
-      {
-        id: '7',
-        supplierId: '1',
-        supplierName: '宝洁（中国）有限公司',
-        supplierCode: '302066',
-        type: 'enterprise',
-        typeName: '企业资质证照',
-        name: '营业执照（延期通过）',
-        licenseNo: '91440101618420138P',
-        issueDate: '2027-01-01',
-        expiryDate: '2032-01-01',
-        status: 'normal',
-        statusName: '正常',
-        fileUrl: '',
-        notes: '营业执照延期申请已通过，原证照失效',
-        submitDate: '2024-06-22',
-        submitBy: '张经理',
-        approvalStatus: 'approved',
-        approvalStatusName: '已审核',
-        operationType: 'renew',
-        operationTypeLabel: '延期申请',
-        sourceCertId: '1',
-        isMaster: true,
-        versionSequence: 2,
-      },
-      {
-        id: '8',
-        supplierId: '3',
-        supplierName: '厦门商贸集团有限公司',
-        supplierCode: '592000222',
-        type: 'authorization',
-        typeName: '授权委托证照',
-        name: '品牌授权书（延期驳回）',
-        licenseNo: 'AUTH2024001',
-        issueDate: '2024-01-01',
-        expiryDate: '2029-12-31',
-        status: 'normal',
-        statusName: '正常',
-        fileUrl: '',
-        notes: '品牌授权书延期申请被驳回',
-        submitDate: '2024-06-22',
-        submitBy: '王经理',
-        approvalStatus: 'rejected',
-        approvalStatusName: '审核拒绝',
-        operationType: 'renew',
-        operationTypeLabel: '延期申请',
-        sourceCertId: '4',
-        isMaster: false,
-        versionSequence: 2,
-        rejectReason: '授权范围与原证照不一致，请重新提交',
-        auditTime: '2024-06-23 10:00:00',
-        auditor: '零售审核员',
-      },
-    ]
-    setLicenses(mockLicenses)
-    setLoading(false)
+    // Mock 数据
+    setTimeout(() => {
+      setLicenses([
+        {
+          id: '1', supplier_code: 'NFS001', store_id: 'store_001',
+          license_type: 'business_license', license_name: '营业执照',
+          license_no: '91110000X12345678X', issue_date: '2020-01-01', expire_date: '2030-12-31',
+          is_permanent: false, issuing_authority: '北京市市场监督管理局',
+          ai_recognized: true, status: 'active', version: 1,
+          created_at: '2026-01-15 10:00:00', updated_at: '2026-01-15 10:00:00',
+        },
+        {
+          id: '2', supplier_code: 'NFS001', store_id: 'store_001',
+          license_type: 'food_license', license_name: '食品经营许可证',
+          license_no: 'JY11100001234', issue_date: '2021-03-15', expire_date: '2027-03-14',
+          is_permanent: false, issuing_authority: '北京市食品药品监督管理局',
+          ai_recognized: false, status: 'active', version: 1,
+          created_at: '2026-01-15 10:00:00', updated_at: '2026-01-15 10:00:00',
+        },
+        {
+          id: '3', supplier_code: 'NFS001', store_id: 'store_002',
+          license_type: 'health_license', license_name: '卫生许可证',
+          license_no: 'WS-2024-001', issue_date: '2024-01-01', expire_date: '2029-12-31',
+          is_permanent: false, issuing_authority: '北京市卫生局',
+          ai_recognized: false, status: 'active', version: 1,
+          created_at: '2026-01-15 10:00:00', updated_at: '2026-01-15 10:00:00',
+        },
+        {
+          id: '4', supplier_code: 'NFS001',
+          license_type: 'trademark_certificate', license_name: '商标注册证',
+          license_no: 'TM-2024-001', issue_date: '2024-06-01', expire_date: null,
+          is_permanent: true, issuing_authority: '国家知识产权局',
+          ai_recognized: false, status: 'active', version: 1,
+          created_at: '2026-01-15 10:00:00', updated_at: '2026-01-15 10:00:00',
+        },
+        {
+          id: '5', supplier_code: 'NFS001', store_id: 'store_001',
+          license_type: 'production_license', license_name: '生产许可证（旧）',
+          license_no: 'SC-2020-001', issue_date: '2020-01-01', expire_date: '2024-12-31',
+          is_permanent: false, issuing_authority: '北京市质量技术监督局',
+          ai_recognized: false, status: 'expired', version: 1,
+          created_at: '2020-01-15 10:00:00', updated_at: '2024-12-31 23:59:59',
+        },
+      ])
+      setLoading(false)
+    }, 300)
   }
 
-  const handleViewDetail = (record: any) => {
-    setSelectedLicense(record)
-    setDetailVisible(true)
-  }
+  useEffect(() => { loadData() }, [])
 
-  const handleEdit = (record: any) => {
-    setSelectedLicense(record)
-    editForm.setFieldsValue(record)
-    setEditVisible(true)
-  }
-
-  const handleDelete = (record: any) => {
-    setLicenses(licenses.filter(l => l.id !== record.id))
-    message.success('证照已删除')
-  }
-
-  const handleAdd = () => {
-    addForm.resetFields()
-    // 当从供应商管理页面跳转过来时，自动填充供应商信息
-    if (supplierId) {
-      addForm.setFieldsValue({
-        supplierId: supplierId
+  // 打开编辑
+  const openEdit = (license: License | null) => {
+    setEditing(license)
+    setAiResult(null)
+    if (license) {
+      form.setFieldsValue({
+        license_type: license.license_type,
+        license_name: license.license_name,
+        license_no: license.license_no,
+        issue_date: license.issue_date,
+        expire_date: license.expire_date,
+        is_permanent: license.is_permanent,
+        issuing_authority: license.issuing_authority,
+        store_id: license.store_id,
       })
+      setIsPermanent(license.is_permanent)
+    } else {
+      form.resetFields()
+      form.setFieldsValue({ is_permanent: false })
+      setIsPermanent(false)
     }
-    setAddVisible(true)
+    setEditOpen(true)
   }
 
-  const handleAddSubmit = async () => {
+  // AI 识别
+  const handleAiRecognize = async (file: File) => {
+    setAiRecognizing(true)
+    // 模拟 AI 识别（生产环境调 /api/ai/recognize）
+    setTimeout(() => {
+      const mockResult = {
+        success: true,
+        data: {
+          license_type: 'business_license',
+          license_name: '营业执照（AI 识别）',
+          license_no: '91110000AI' + Math.floor(Math.random() * 1000000),
+          issuing_authority: '北京市市场监督管理局（AI）',
+          issue_date: '2020-01-01',
+          expire_date: '2030-12-31',
+          confidence: 0.95,
+        },
+      }
+      form.setFieldsValue(mockResult.data)
+      setAiResult(mockResult.data)
+      setIsPermanent(false)
+      setAiRecognizing(false)
+      message.success('AI 识别完成，请核对信息后保存')
+    }, 1500)
+    return false  // 阻止自动上传
+  }
+
+  // 提交
+  const handleSubmit = async () => {
     try {
-      const values = await addForm.validateFields()
-      const newLicense = {
-        id: Date.now().toString(),
-        ...values,
-        status: 'normal',
-        statusName: '正常',
-        submitDate: new Date().toISOString().split('T')[0],
-        submitBy: '系统管理员',
-        approvalStatus: 'pending',
-        approvalStatusName: '待审核',
-        typeName: licenseTypes.find(t => t.value === values.type)?.label || '',
-      }
-      setLicenses([...licenses, newLicense])
-      message.success('证照添加成功')
-      setAddVisible(false)
-      addForm.resetFields()
-    } catch (error) {
-      console.error('Validation failed:', error)
-    }
+      const values = await form.validateFields()
+      message.success(editing ? '修改成功' : '新增成功')
+      setEditOpen(false)
+      loadData()
+    } catch (e) {}
   }
 
-  const handleEditSubmit = async () => {
-    try {
-      const values = await editForm.validateFields()
-      const updatedLicense = {
-        ...selectedLicense,
-        ...values,
-        typeName: licenseTypes.find(t => t.value === values.type)?.label || '',
-      }
-      setLicenses(licenses.map(l => l.id === selectedLicense.id ? updatedLicense : l))
-      message.success('证照更新成功')
-      setEditVisible(false)
-      editForm.resetFields()
-    } catch (error) {
-      console.error('Validation failed:', error)
-    }
-  }
-
-  const handleApprove = (record: any) => {
-    setLicenses(prev => {
-      const next = prev.map(l => {
-        if (l.id === record.id) {
-          return {
-            ...record,
-            approvalStatus: 'approved',
-            approvalStatusName: '已审核',
-            status: 'normal',
-            statusName: '正常',
-            isMaster: true,
-          }
-        }
-        // 延期申请通过后，将原证照标记为已归档且不再是主证照
-        if (record.operationType === 'renew' && record.sourceCertId && l.id === record.sourceCertId) {
-          return {
-            ...l,
-            status: 'invalid',
-            statusName: '无效',
-            isMaster: false,
-            renewedCertId: record.id,
-          }
-        }
-        return l
-      })
-      return next
+  // 延期
+  const handleRenew = (license: License) => {
+    Modal.confirm({
+      title: '证照延期',
+      content: `确认对「${license.license_name}」进行延期？将生成新版本关联原证照`,
+      onOk: () => {
+        message.success('延期成功，新版本已生成')
+        loadData()
+      },
     })
-    message.success('证照已审核通过')
   }
 
-  const handleRejectClick = (record: any) => {
-    setRejectingRecord(record)
-    setRejectReason('')
-    setRejectModalVisible(true)
-  }
-
-  const handleRejectConfirm = () => {
-    if (!rejectReason.trim()) {
-      message.error('请输入驳回原因')
-      return
-    }
-    setLicenses(prev => prev.map(l => {
-      if (l.id === rejectingRecord.id) {
-        return {
-          ...l,
-          approvalStatus: 'rejected',
-          approvalStatusName: '审核拒绝',
-          rejectReason: rejectReason.trim(),
-          auditTime: new Date().toISOString().split('T')[0],
-          auditor: '当前审核人',
-        }
-      }
-      return l
-    }))
-    setRejectModalVisible(false)
-    message.success('证照审核已拒绝')
-  }
-
-  const handleSearch = () => {
-    let filtered = [...licenses]
-
-    if (filters.supplierCode) {
-      filtered = filtered.filter(l => 
-        l.supplierCode && l.supplierCode.toLowerCase().includes(filters.supplierCode.toLowerCase())
-      )
-    }
-
-    if (filters.supplierName) {
-      filtered = filtered.filter(l => 
-        l.supplierName && l.supplierName.toLowerCase().includes(filters.supplierName.toLowerCase())
-      )
-    }
-
-    if (filters.type) {
-      filtered = filtered.filter(l => l.type === filters.type)
-    }
-
-    if (filters.status) {
-      filtered = filtered.filter(l => l.status === filters.status)
-    }
-
-    if (filters.approvalStatus) {
-      filtered = filtered.filter(l => l.approvalStatus === filters.approvalStatus)
-    }
-
-    setFilteredLicenses(filtered)
-  }
-
-  const handleReset = () => {
-    setFilters({
-      supplierCode: undefined,
-      supplierName: undefined,
-      type: undefined,
-      status: undefined,
-      approvalStatus: undefined,
+  // 删除
+  const handleDelete = (license: License) => {
+    Modal.confirm({
+      title: '确认删除？',
+      content: `将删除「${license.license_name}」`,
+      okType: 'danger',
+      onOk: () => {
+        message.success('删除成功')
+        loadData()
+      },
     })
-    setFilteredLicenses(licenses)
   }
 
+  // 过滤
+  const filtered = licenses.filter(l => {
+    if (filterType !== 'all' && l.license_type !== filterType) return false
+    if (filterStatus !== 'all' && l.status !== filterStatus) return false
+    return true
+  })
+
+  // 状态映射
+  const statusMap: any = {
+    active: { color: 'success', text: '有效' },
+    expired: { color: 'default', text: '已过期' },
+    pending: { color: 'processing', text: '待审核' },
+    rejected: { color: 'error', text: '已驳回' },
+  }
+
+  // 表格列
   const columns = [
-    { title: '供应商编码', dataIndex: 'supplierCode', key: 'supplierCode', width: 120 },
-    { title: '供应商名称', dataIndex: 'supplierName', key: 'supplierName', width: 180 },
-    { 
-      title: '证照类型', 
-      dataIndex: 'typeName', 
-      key: 'typeName', 
-      width: 120,
-    },
-    { title: '证照名称', dataIndex: 'name', key: 'name', width: 150 },
     {
-      title: '操作类型',
-      dataIndex: 'operationTypeLabel',
-      key: 'operationType',
-      width: 100,
-      render: (text: string) => {
-        if (!text) return <span style={{ color: '#999' }}>-</span>;
-        const colorMap: Record<string, string> = {
-          '延期申请': 'orange',
-          '新增': 'blue',
-        };
-        return <Tag color={colorMap[text] || 'default'}>{text}</Tag>;
-      }
-    },
-    {
-      title: '延期状态',
-      key: 'renewStatus',
-      width: 110,
-      render: (_: any, record: any) => {
-        if (record.status === 'expired' && record.operationType !== 'renew') {
-          return <Tag color="error">未延期</Tag>;
-        }
-        if (record.operationType === 'renew') {
-          if (record.approvalStatus === 'pending') return <Tag color="processing">待审核</Tag>;
-          if (record.approvalStatus === 'approved') return <Tag color="success">已延期</Tag>;
-          if (record.approvalStatus === 'rejected') return <Tag color="warning">已驳回</Tag>;
-        }
-        return <span style={{ color: '#999' }}>--</span>;
-      }
-    },
-    { title: '证照编号', dataIndex: 'licenseNo', key: 'licenseNo', width: 150 },
-    { title: '发证日期', dataIndex: 'issueDate', key: 'issueDate', width: 120 },
-    { title: '到期日期', dataIndex: 'expiryDate', key: 'expiryDate', width: 120 },
-    { 
-      title: '证照状态', 
-      dataIndex: 'status', 
-      key: 'status', 
-      width: 100,
-      render: (status: string) => {
-        const statusConfig: Record<string, { color: string; text: string }> = {
-          normal: { color: 'success', text: '正常' },
-          expired: { color: 'error', text: '已过期' },
-          warning: { color: 'warning', text: '即将过期' },
-          invalid: { color: 'default', text: '无效' },
-        }
-        const config = statusConfig[status] || { color: 'default', text: status }
-        return <Tag color={config.color}>{config.text}</Tag>
-      }
-    },
-    { 
-      title: '审核状态', 
-      dataIndex: 'approvalStatus', 
-      key: 'approvalStatus', 
-      width: 100,
-      render: (status: string) => {
-        const statusConfig: Record<string, { color: string; text: string }> = {
-          pending: { color: 'processing', text: '待审核' },
-          approved: { color: 'success', text: '已审核' },
-          rejected: { color: 'error', text: '审核拒绝' },
-        }
-        const config = statusConfig[status] || { color: 'default', text: status }
-        return <Tag color={config.color}>{config.text}</Tag>
-      }
-    },
-    { 
-      title: '操作', 
-      key: 'action', 
-      width: 200,
-      render: (_: unknown, record: any) => {
-        const isApprovedRenew = record.operationType === 'renew' && record.approvalStatus === 'approved';
-        const isRejectedRenew = record.operationType === 'renew' && record.approvalStatus === 'rejected';
+      title: '证照类型', dataIndex: 'license_type', key: 'license_type', width: 200,
+      render: (code: string) => {
+        const t = LICENSE_TYPES.find(x => x.code === code)
         return (
-          <Space size="small">
-            <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleViewDetail(record)}>
-              查看
-            </Button>
-            {!isApprovedRenew && (
-              <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-                编辑
-              </Button>
-            )}
-            {!isApprovedRenew && !isRejectedRenew && (
-              <Popconfirm
-                title="确定要删除此证照吗？"
-                onConfirm={() => handleDelete(record)}
-                okText="确定"
-                cancelText="取消"
-              >
-                <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-                  删除
-                </Button>
-              </Popconfirm>
-            )}
-            {record.approvalStatus === 'pending' && (
-              <Space size="small">
-                <Button 
-                  type="link" 
-                  size="small" 
-                  style={{ color: '#52c41a' }}
-                  onClick={() => handleApprove(record)}
-                >
-                  审核通过
-                </Button>
-                <Button 
-                  type="link" 
-                  size="small" 
-                  danger
-                  onClick={() => handleRejectClick(record)}
-                >
-                  审核拒绝
-                </Button>
-              </Space>
-            )}
+          <Space>
+            <Tag color={t?.enabled ? 'blue' : 'default'}>{t?.name || code}</Tag>
+            {!t?.enabled && <Tag color="warning">二期</Tag>}
           </Space>
-        );
+        )
       },
+    },
+    { title: '证照名称', dataIndex: 'license_name', key: 'license_name' },
+    { title: '编号', dataIndex: 'license_no', key: 'license_no', width: 180 },
+    {
+      title: '门店/专柜', dataIndex: 'store_id', key: 'store_id', width: 120,
+      render: (s: string) => s || <Tag>全供应商</Tag>,
+    },
+    {
+      title: '有效期', key: 'period', width: 240,
+      render: (_: any, r: License) => {
+        if (r.is_permanent) return <Tag color="green">长期有效</Tag>
+        return (
+          <span style={{ fontSize: 12 }}>
+            {r.issue_date?.slice(0, 10)} ~ {r.expire_date?.slice(0, 10) || '-'}
+          </span>
+        )
+      },
+    },
+    {
+      title: '状态', dataIndex: 'status', key: 'status', width: 90,
+      render: (s: string) => <Tag color={statusMap[s]?.color}>{statusMap[s]?.text}</Tag>,
+    },
+    {
+      title: '来源', dataIndex: 'ai_recognized', key: 'ai_recognized', width: 80,
+      render: (ai: boolean) => ai ? <Tag icon={<RobotOutlined />} color="purple">AI</Tag> : <Tag>手动</Tag>,
+    },
+    {
+      title: '版本', dataIndex: 'version', key: 'version', width: 60,
+      render: (v: number) => <Tag>v{v}</Tag>,
+    },
+    {
+      title: '操作', key: 'action', width: 220, fixed: 'right' as const,
+      render: (_: any, r: License) => (
+        <Space size="small">
+          <Button type="link" size="small" onClick={() => openEdit(r)}>查看/编辑</Button>
+          {r.status === 'active' && !r.is_permanent && (
+            <Button type="link" size="small" onClick={() => handleRenew(r)}>延期</Button>
+          )}
+          {isAdmin && (
+            <Button type="link" size="small" danger onClick={() => handleDelete(r)}>删除</Button>
+          )}
+        </Space>
+      ),
     },
   ]
 
   return (
-    <ProductAnnotation config={licenseManagementAnnotations}>
-    <Card>
-      <Alert
-        message="证照管理功能说明"
-        description={
-          <div>
-            <p><strong>功能说明：</strong></p>
-            <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
-              <li>管理供应商提交的各类证照，包括企业资质、产品资质、产品流通、授权委托和门店商户租赁证照</li>
-              <li>查看证照详情、编辑证照信息、上传证照文件</li>
-              <li>审核供应商提交的新证照</li>
-              <li>监控证照过期状态，及时提醒</li>
-            </ul>
-          </div>
-        }
-        type="info"
-        showIcon
-        closable
-        style={{ marginBottom: 16 }}
-      />
-
-      <AdvancedSearchFilter
-        fields={[
-          { key: 'supplierCode', label: '供应商编码', type: 'input', placeholder: '请输入编码' },
-          { key: 'supplierName', label: '供应商名称', type: 'input', placeholder: '请输入名称' },
-          { key: 'type', label: '证照类型', type: 'select', placeholder: '请选择' },
-          { key: 'status', label: '证照状态', type: 'select', placeholder: '请选择',
-            options: [{ label: '正常', value: 'normal' }, { label: '即将到期', value: 'expiring_soon' }, { label: '已过期', value: 'expired' }]
-          },
-          { key: 'approvalStatus', label: '审核状态', type: 'select', placeholder: '请选择',
-            options: [{ label: '待审核', value: 'pending' }, { label: '已通过', value: 'approved' }, { label: '已驳回', value: 'rejected' }]
-          },
-          { key: 'operationType', label: '操作类型', type: 'select', placeholder: '请选择',
-            options: [{ label: '延期申请', value: 'renew' }, { label: '新增', value: 'add' }]
-          }
-        ]}
-        values={filters} onChange={(k,v)=>handleSearch()} onSearch={handleSearch} onReset={handleReset}
-      />
-
-      <div style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-          添加证照
-        </Button>
-      </div>
-
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={filteredLicenses}
-        loading={loading}
-        pagination={{ 
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条记录`,
-        }}
-        scroll={{ x: 1200 }}
-      />
-
-      {/* 证照详情抽屉 */}
-      <Drawer
-        title="证照详情"
-        placement="right"
-        width={720}
-        onClose={() => setDetailVisible(false)}
-        open={detailVisible}
-      >
-        {selectedLicense && (
-          <Descriptions bordered column={2}>
-            <Descriptions.Item label="供应商编码">{selectedLicense.supplierCode}</Descriptions.Item>
-            <Descriptions.Item label="供应商名称">{selectedLicense.supplierName}</Descriptions.Item>
-            <Descriptions.Item label="证照类型">{selectedLicense.typeName}</Descriptions.Item>
-            <Descriptions.Item label="证照名称">{selectedLicense.name}</Descriptions.Item>
-            <Descriptions.Item label="证照编号">{selectedLicense.licenseNo}</Descriptions.Item>
-            <Descriptions.Item label="发证日期">{selectedLicense.issueDate}</Descriptions.Item>
-            <Descriptions.Item label="到期日期">{selectedLicense.expiryDate}</Descriptions.Item>
-            <Descriptions.Item label="证照状态">
-              <Tag color={
-                selectedLicense.status === 'normal' ? 'success' :
-                selectedLicense.status === 'expired' ? 'error' :
-                selectedLicense.status === 'warning' ? 'warning' : 'default'
-              }>
-                {selectedLicense.statusName}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="是否主证照">
-              <Tag color={selectedLicense.isMaster ? 'success' : 'default'}>
-                {selectedLicense.isMaster ? '主证照' : '历史版本'}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="版本序号">V{selectedLicense.versionSequence || 1}</Descriptions.Item>
-            <Descriptions.Item label="关联原证照">
-              {selectedLicense.sourceCertId
-                ? (() => {
-                    const parent = licenses.find((l: any) => l.id === selectedLicense.sourceCertId);
-                    return parent
-                      ? <Button type="link" size="small" onClick={() => { setSelectedLicense(parent); }}>{parent.name}</Button>
-                      : selectedLicense.sourceCertId;
-                  })()
-                : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="后续延期证照">
-              {selectedLicense.renewedCertId
-                ? (() => {
-                    const child = licenses.find((l: any) => l.id === selectedLicense.renewedCertId);
-                    return child
-                      ? <Button type="link" size="small" onClick={() => { setSelectedLicense(child); }}>{child.name}</Button>
-                      : selectedLicense.renewedCertId;
-                  })()
-                : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="审核状态">
-              <Tag color={
-                selectedLicense.approvalStatus === 'approved' ? 'success' :
-                selectedLicense.approvalStatus === 'rejected' ? 'error' : 'processing'
-              }>
-                {selectedLicense.approvalStatusName}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="驳回原因">{selectedLicense.rejectReason || '-'}</Descriptions.Item>
-            <Descriptions.Item label="审核时间">{selectedLicense.auditTime || '-'}</Descriptions.Item>
-            <Descriptions.Item label="审核人">{selectedLicense.auditor || '-'}</Descriptions.Item>
-            <Descriptions.Item label="提交日期">{selectedLicense.submitDate}</Descriptions.Item>
-            <Descriptions.Item label="提交人">{selectedLicense.submitBy}</Descriptions.Item>
-            <Descriptions.Item label="备注" span={2}>{selectedLicense.notes || '-'}</Descriptions.Item>
-            <Descriptions.Item label="证照文件" span={2}>
-              {selectedLicense.fileUrl ? (
-                <a href={selectedLicense.fileUrl} target="_blank" rel="noopener noreferrer">
-                  查看文件
-                </a>
-              ) : (
-                <span>无文件</span>
+    <div style={{ padding: 24 }}>
+      <Card>
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={5}>
+            <Statistic title="证照总数" value={licenses.length} />
+          </Col>
+          <Col span={5}>
+            <Statistic
+              title="有效"
+              value={licenses.filter(l => l.status === 'active').length}
+              valueStyle={{ color: '#3f8600' }}
+            />
+          </Col>
+          <Col span={5}>
+            <Statistic
+              title="已过期"
+              value={licenses.filter(l => l.status === 'expired').length}
+              valueStyle={{ color: '#cf1322' }}
+            />
+          </Col>
+          <Col span={9}>
+            <Space>
+              <Select
+                style={{ width: 160 }}
+                placeholder="证照类型"
+                value={filterType}
+                onChange={setFilterType}
+              >
+                <Option value="all">全部类型</Option>
+                {LICENSE_TYPES.map(t => (
+                  <Option key={t.code} value={t.code} disabled={!t.enabled}>
+                    {t.name}{!t.enabled && '（二期）'}
+                  </Option>
+                ))}
+              </Select>
+              <Select
+                style={{ width: 120 }}
+                placeholder="状态"
+                value={filterStatus}
+                onChange={setFilterStatus}
+              >
+                <Option value="all">全部状态</Option>
+                <Option value="active">有效</Option>
+                <Option value="expired">已过期</Option>
+                <Option value="pending">待审核</Option>
+                <Option value="rejected">已驳回</Option>
+              </Select>
+              <Button icon={<ReloadOutlined />} onClick={loadData}>刷新</Button>
+              {isAdmin && (
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => openEdit(null)}>
+                  新增证照
+                </Button>
               )}
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Drawer>
+            </Space>
+          </Col>
+        </Row>
 
-      <Modal
-        title="驳回原因"
-        visible={rejectModalVisible}
-        onOk={handleRejectConfirm}
-        onCancel={() => setRejectModalVisible(false)}
-      >
-        <Input.TextArea
-          value={rejectReason}
-          onChange={e => setRejectReason(e.target.value)}
-          placeholder="请输入驳回原因"
-          rows={4}
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={filtered}
+          loading={loading}
+          scroll={{ x: 1300 }}
+          pagination={{ pageSize: 10 }}
+          locale={{ emptyText: <Empty description="暂无证照数据" /> }}
         />
+      </Card>
+
+      {/* 编辑弹窗 */}
+      <Modal
+        title={editing ? `证照详情 - ${editing.license_name}` : '新增证照'}
+        open={editOpen}
+        onOk={handleSubmit}
+        onCancel={() => setEditOpen(false)}
+        width={700}
+        destroyOnClose
+      >
+        {!editing && (
+          <Alert
+            type="info"
+            message="提示：可上传证照图片，AI 自动识别回填表单"
+            icon={<RobotOutlined />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {!editing && (
+          <Upload.Dragger
+            accept="image/*,.pdf"
+            beforeUpload={handleAiRecognize}
+            showUploadList={false}
+            disabled={aiRecognizing}
+            style={{ marginBottom: 16 }}
+          >
+            <Spin spinning={aiRecognizing}>
+              <p className="ant-upload-drag-icon">
+                <CameraOutlined style={{ fontSize: 36, color: '#1890ff' }} />
+              </p>
+              <p className="ant-upload-text">
+                {aiRecognizing ? 'AI 识别中...' : '点击或拖拽上传证照图片'}
+              </p>
+              <p className="ant-upload-hint">
+                支持 JPG/PNG/PDF，AI 自动识别 17 类证照
+              </p>
+            </Spin>
+          </Upload.Dragger>
+        )}
+
+        {aiResult && (
+          <Alert
+            type="success"
+            message={`AI 识别完成（置信度 ${(aiResult.confidence * 100).toFixed(0)}%）`}
+            description="请核对识别结果后保存"
+            style={{ marginBottom: 16 }}
+            closable
+            onClose={() => setAiResult(null)}
+            showIcon
+          />
+        )}
+
+        <Form form={form} layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="证照类型"
+                name="license_type"
+                rules={[{ required: true, message: '请选择证照类型' }]}
+              >
+                <Select
+                  showSearch
+                  placeholder="支持模糊搜索"
+                  optionFilterProp="label"
+                  options={LICENSE_TYPES.map(t => ({
+                    value: t.code,
+                    label: t.name,
+                    disabled: !t.enabled,
+                  }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="门店/专柜"
+                name="store_id"
+                extra="留空表示全供应商通用"
+              >
+                <Select allowClear placeholder="选择门店">
+                  <Option value="store_001">门店 001 - 北京旗舰店</Option>
+                  <Option value="store_002">门店 002 - 上海分店</Option>
+                  <Option value="store_003">门店 003 - 广州分店</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            label="证照名称"
+            name="license_name"
+            rules={[{ required: true, message: '请输入证照名称' }]}
+          >
+            <Input placeholder="如：营业执照" />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="证照编号"
+                name="license_no"
+              >
+                <Input placeholder="统一社会信用代码等" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="颁发机构"
+                name="issuing_authority"
+              >
+                <Input placeholder="如：北京市市场监督管理局" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item label="有效期类型" name="is_permanent">
+            <Radio.Group onChange={e => setIsPermanent(e.target.value)}>
+              <Radio value={false}>固定有效期</Radio>
+              <Radio value={true}>长期有效</Radio>
+            </Radio.Group>
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="生效日期"
+                name="issue_date"
+                rules={[{ required: true, message: '请选择生效日期' }]}
+              >
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              {!isPermanent && (
+                <Form.Item
+                  label="到期日期"
+                  name="expire_date"
+                  rules={[{ required: !isPermanent, message: '请选择到期日期' }]}
+                >
+                  <DatePicker style={{ width: '100%' }} />
+                </Form.Item>
+              )}
+            </Col>
+          </Row>
+        </Form>
       </Modal>
-
-      {/* 添加证照抽屉 */}
-      <Drawer
-        title="添加证照"
-        placement="right"
-        width={600}
-        open={addVisible}
-        onClose={() => {
-          setAddVisible(false)
-          addForm.resetFields()
-        }}
-        extra={
-          <Space>
-            <Button onClick={() => {
-              setAddVisible(false)
-              addForm.resetFields()
-            }}>取消</Button>
-            <Button type="primary" onClick={handleAddSubmit}>添加</Button>
-          </Space>
-        }
-      >
-        <Form
-          form={addForm}
-          layout="vertical"
-          style={{ marginTop: 16 }}
-        >
-          <Form.Item
-            label="供应商"
-            name="supplierId"
-            rules={[{ required: true, message: '请选择供应商' }]}
-          >
-            <Select placeholder="请选择供应商">
-              {suppliers.map(supplier => (
-                <Option key={supplier.id} value={supplier.id}>
-                  {supplier.code} - {supplier.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="证照类型"
-            name="type"
-            rules={[{ required: true, message: '请选择证照类型' }]}
-          >
-            <Select placeholder="请选择证照类型">
-              {licenseTypes.map(type => (
-                <Option key={type.value} value={type.value}>
-                  {type.label}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="证照名称"
-            name="name"
-            rules={[{ required: true, message: '请输入证照名称' }]}
-          >
-            <Input placeholder="请输入证照名称" />
-          </Form.Item>
-
-          <Form.Item
-            label="证照编号"
-            name="licenseNo"
-            rules={[{ required: true, message: '请输入证照编号' }]}
-          >
-            <Input placeholder="请输入证照编号" />
-          </Form.Item>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="发证日期"
-                name="issueDate"
-                rules={[{ required: true, message: '请选择发证日期' }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="到期日期"
-                name="expiryDate"
-                rules={[{ required: true, message: '请选择到期日期' }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            label="备注"
-            name="notes"
-          >
-            <Input.TextArea placeholder="请输入备注信息" rows={3} />
-          </Form.Item>
-
-          <Form.Item
-            label="上传证照文件"
-            name="fileUrl"
-          >
-            <Upload>
-              <Button icon={<UploadOutlined />}>点击上传</Button>
-            </Upload>
-          </Form.Item>
-        </Form>
-      </Drawer>
-
-      {/* 编辑证照抽屉 */}
-      <Drawer
-        title="编辑证照"
-        placement="right"
-        width={600}
-        open={editVisible}
-        onClose={() => {
-          setEditVisible(false)
-          editForm.resetFields()
-        }}
-        extra={
-          <Space>
-            <Button onClick={() => {
-              setEditVisible(false)
-              editForm.resetFields()
-            }}>取消</Button>
-            <Button type="primary" onClick={handleEditSubmit}>保存</Button>
-          </Space>
-        }
-      >
-        <Form
-          form={editForm}
-          layout="vertical"
-          style={{ marginTop: 16 }}
-        >
-          <Form.Item
-            label="供应商"
-            name="supplierId"
-            rules={[{ required: true, message: '请选择供应商' }]}
-          >
-            <Select placeholder="请选择供应商">
-              {suppliers.map(supplier => (
-                <Option key={supplier.id} value={supplier.id}>
-                  {supplier.code} - {supplier.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="证照类型"
-            name="type"
-            rules={[{ required: true, message: '请选择证照类型' }]}
-          >
-            <Select placeholder="请选择证照类型">
-              {licenseTypes.map(type => (
-                <Option key={type.value} value={type.value}>
-                  {type.label}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="证照名称"
-            name="name"
-            rules={[{ required: true, message: '请输入证照名称' }]}
-          >
-            <Input placeholder="请输入证照名称" />
-          </Form.Item>
-
-          <Form.Item
-            label="证照编号"
-            name="licenseNo"
-            rules={[{ required: true, message: '请输入证照编号' }]}
-          >
-            <Input placeholder="请输入证照编号" />
-          </Form.Item>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="发证日期"
-                name="issueDate"
-                rules={[{ required: true, message: '请选择发证日期' }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="到期日期"
-                name="expiryDate"
-                rules={[{ required: true, message: '请选择到期日期' }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            label="备注"
-            name="notes"
-          >
-            <Input.TextArea placeholder="请输入备注信息" rows={3} />
-          </Form.Item>
-
-          <Form.Item
-            label="上传证照文件"
-            name="fileUrl"
-          >
-            <Upload>
-              <Button icon={<UploadOutlined />}>点击上传</Button>
-            </Upload>
-          </Form.Item>
-        </Form>
-      </Drawer>
-    </Card>
+    </div>
   )
 }
 

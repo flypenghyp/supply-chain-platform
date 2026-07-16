@@ -207,6 +207,145 @@ class Database {
       )
     `);
 
+    // ============== Phase 1 新增表 ==============
+
+    // 角色表（双层权限 - 功能权限）
+    await run(`
+      CREATE TABLE IF NOT EXISTS roles (
+        id TEXT PRIMARY KEY,
+        code TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        description TEXT,
+        type TEXT DEFAULT 'custom',  -- 'system' | 'custom'
+        permissions TEXT NOT NULL,    -- JSON: ['user:read', 'user:write', 'license:read', 'license:approve']
+        status TEXT DEFAULT 'active',
+        created_by TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 用户数据权限范围表（双层权限 - 数据权限）
+    await run(`
+      CREATE TABLE IF NOT EXISTS user_data_scope (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        supplier_code TEXT NOT NULL,
+        scope_type TEXT NOT NULL,         -- 'all' | 'region' | 'store' | 'counter'
+        scope_ids TEXT NOT NULL,          -- JSON array: ['store_001', 'store_002']
+        effective_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expire_date DATETIME,
+        created_by TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES supplier_users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 用户角色关联表（多对多）
+    await run(`
+      CREATE TABLE IF NOT EXISTS user_roles (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        role_id TEXT NOT NULL,
+        supplier_code TEXT NOT NULL,
+        granted_by TEXT,
+        granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES supplier_users(id) ON DELETE CASCADE,
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+        UNIQUE(user_id, role_id, supplier_code)
+      )
+    `);
+
+    // 证照表（一期基础）
+    await run(`
+      CREATE TABLE IF NOT EXISTS licenses (
+        id TEXT PRIMARY KEY,
+        supplier_code TEXT NOT NULL,
+        store_id TEXT,                       -- 门店/专柜 ID（可空）
+        license_type TEXT NOT NULL,          -- 17 类证照枚举
+        license_name TEXT NOT NULL,
+        license_no TEXT,                     -- 证照编号
+        issue_date DATETIME,                 -- 开始日期
+        expire_date DATETIME,                -- 结束日期（null = 长期有效）
+        is_permanent INTEGER DEFAULT 0,      -- 1=长期 0=固定
+        issuing_authority TEXT,              -- 颁发机构
+        image_url TEXT,                      -- 证照图片
+        ai_recognized INTEGER DEFAULT 0,     -- 1=AI 识别 0=手动
+        ai_raw_data TEXT,                    -- AI 识别的原始 JSON
+        status TEXT DEFAULT 'active',        -- active | expired | pending | rejected
+        version INTEGER DEFAULT 1,           -- 延期生成新 version
+        parent_id TEXT,                      -- 指向原证照（延期时）
+        reject_reason TEXT,                  -- 驳回原因
+        created_by TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (parent_id) REFERENCES licenses(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 证照 UNIQUE 索引：单门店同类证照仅一条 active
+    await run(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_licenses_unique
+      ON licenses(supplier_code, IFNULL(store_id, ''), license_type)
+      WHERE status = 'active' AND is_permanent = 0
+    `);
+
+    // 授权委托书表
+    await run(`
+      CREATE TABLE IF NOT EXISTS authorizations (
+        id TEXT PRIMARY KEY,
+        supplier_code TEXT NOT NULL,         -- 归属供应商（不绑定单用户）
+        submitter_user_id TEXT NOT NULL,     -- 提交人
+        submitter_name TEXT NOT NULL,
+        submitter_phone TEXT,
+        file_url TEXT NOT NULL,              -- PDF/图片地址
+        file_type TEXT,                      -- 'pdf' | 'image'
+        file_size INTEGER,
+        auth_no TEXT,                        -- 授权书编号
+        auth_start_date DATETIME,
+        auth_end_date DATETIME,
+        authorizer_name TEXT,                -- 授权人姓名（被授权方）
+        authorizee_name TEXT,                -- 被授权人姓名
+        status TEXT DEFAULT 'pending',       -- pending | approved | rejected
+        reject_reason TEXT,
+        reviewer_id TEXT,
+        reviewer_name TEXT,
+        review_time DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (submitter_user_id) REFERENCES supplier_users(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 操作日志表
+    await run(`
+      CREATE TABLE IF NOT EXISTS operation_logs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        supplier_code TEXT NOT NULL,
+        module TEXT NOT NULL,                -- 'user' | 'license' | 'super_admin' | 'authorization' | 'permission'
+        action TEXT NOT NULL,                -- 'create' | 'update' | 'delete' | 'approve' | 'reject' | 'login' | 'logout'
+        target_id TEXT,                      -- 操作对象 ID
+        target_type TEXT,                    -- 'user' | 'license' | 'role' | 'authorization'
+        detail TEXT,                         -- JSON: 操作详情
+        result TEXT DEFAULT 'success',       -- 'success' | 'failed'
+        error_message TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        operation_time DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 操作日志索引
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_operation_logs_user ON operation_logs(user_id, operation_time DESC)
+    `);
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_operation_logs_supplier ON operation_logs(supplier_code, operation_time DESC)
+    `);
+
     console.log('Database tables created successfully');
   }
 

@@ -15,6 +15,8 @@ import {
   MessageOutlined,
   FileDoneOutlined,
   CreditCardOutlined,
+  CrownOutlined,
+  UserSwitchOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -34,7 +36,7 @@ interface MainLayoutProps {
 const MainLayout = ({ children, onLogout }: MainLayoutProps) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { permission, getManagedCategories } = usePermission()
+  const { permission, getManagedCategories, isAdmin } = usePermission()
   const [selectedModule, setSelectedModule] = useState<string>(() => {
     if (location.pathname.startsWith('/finance')) return 'finance'
     if (location.pathname.startsWith('/contracts')) return 'contracts'
@@ -44,6 +46,8 @@ const MainLayout = ({ children, onLogout }: MainLayoutProps) => {
     if (location.pathname.startsWith('/quality')) return 'quality'
     if (location.pathname.startsWith('/licenses')) return 'licenses'
     if (location.pathname.startsWith('/announcements')) return 'announcements'
+    if (location.pathname.startsWith('/user-management')) return 'user-management'
+    if (location.pathname.startsWith('/super-admin')) return 'super-admin'
     return 'finance'
   })
   const [subMenuOpen, setSubMenuOpen] = useState<boolean>(true)
@@ -58,6 +62,10 @@ const MainLayout = ({ children, onLogout }: MainLayoutProps) => {
     { key: 'quality', icon: <SafetyOutlined />, label: '质量管理' },
     { key: 'licenses', icon: <SafetyCertificateOutlined />, label: '证照管理' },
     { key: 'announcements', icon: <MessageOutlined />, label: '公告管理' },
+    // Phase 1: 用户管理 - 仅超管可见
+    ...(isAdmin ? [{ key: 'user-management', icon: <TeamOutlined />, label: '用户管理' }] : []),
+    // Phase 1: 超管配置 - 仅超管可见
+    ...(isAdmin ? [{ key: 'super-admin', icon: <CrownOutlined />, label: '超管配置' }] : []),
   ]
 
   // 二级菜单（按一级菜单 key 索引，点击一级菜单时切换显示）
@@ -114,6 +122,20 @@ const MainLayout = ({ children, onLogout }: MainLayoutProps) => {
       name: '公告管理',
       items: [
         { key: '/announcements', icon: <MessageOutlined />, label: '公告列表' },
+      ],
+    },
+    'user-management': {
+      name: '用户管理',
+      items: [
+        { key: '/user-management', icon: <TeamOutlined />, label: '用户列表' },
+        { key: '/authorization-letters', icon: <FileTextOutlined />, label: '授权委托书' },
+        { key: '/operation-logs', icon: <FileDoneOutlined />, label: '操作日志' },
+      ],
+    },
+    'super-admin': {
+      name: '超管配置',
+      items: [
+        { key: '/super-admin-config', icon: <CrownOutlined />, label: '配置管理员' },
       ],
     },
   }
@@ -192,7 +214,7 @@ const MainLayout = ({ children, onLogout }: MainLayoutProps) => {
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
                 <Avatar icon={<UserOutlined />} />
-                <Text>{permission?.user.realName}</Text>
+                <Text>{permission?.user.realName || permission?.name}</Text>
               </Space>
             </Dropdown>
           </Space>

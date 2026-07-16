@@ -535,3 +535,9 @@ export async function getEsignLogs(userId: string) {
     [userId]
   );
 }
+
+// ============== Phase 1 新增模块 ==============
+export * from './licenses.js';
+export * from './authorizations.js';
+export * from './operationLogs.js';
+export * from './roles.js';

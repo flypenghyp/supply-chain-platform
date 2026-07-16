@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { db } from './db/database.js';
 import routes from './routes/index.js';
+import { authMiddleware } from './middleware/permission.js';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(authMiddleware);  // Phase 1: 解析 X-User-Id 等身份信息
 
 // Health check
 app.get('/health', (req, res) => {

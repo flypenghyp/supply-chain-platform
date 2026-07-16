@@ -531,6 +531,7 @@ const EnterpriseCenter = () => {
         </Form>
       </Modal>
     </Card>
+    </ProductAnnotation>
   )
 }
 
